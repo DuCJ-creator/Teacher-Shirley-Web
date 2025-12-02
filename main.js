@@ -79,3 +79,20 @@ musicToggle.addEventListener('click', () => {
     else { themeSong.currentTime=0; themeSong.play(); musicToggle.style.color="var(--accent)"; }
     isPlaying = !isPlaying;
 });
+// ==========================================
+// 關鍵修復：把私人功能公開給 HTML 按鈕使用
+// ==========================================
+
+// 1. 確保這些函數存在，然後掛載到 window
+if (typeof openLetter === 'function') window.openLetter = openLetter;
+if (typeof enterVisitorMode === 'function') window.enterVisitorMode = enterVisitorMode;
+if (typeof showAuthForm === 'function') window.showAuthForm = showAuthForm;
+if (typeof visitPlanet === 'function') window.visitPlanet = visitPlanet;
+if (typeof markWordLearned === 'function') window.markWordLearned = markWordLearned;
+if (typeof printReport === 'function') window.printReport = printReport;
+if (typeof logout === 'function') window.logout = logout;
+
+// 2. 如果你的登入是用 Google Popup，可能需要這個
+if (typeof signInWithGoogle === 'function') window.signInWithGoogle = signInWithGoogle;
+
+console.log("System Ready: Functions are now public.");
