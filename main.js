@@ -1,10 +1,9 @@
-// main.js - 100% 原始功能保留版
-// 1. 改用 npm 模組引入 (Vercel 需要這樣)
+// main.js - 依照你的原始代碼 1:1 還原版
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 
-// 2. 使用環境變數 (隱藏 Key)
+// 1. 環境變數設定
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_API_KEY,
   authDomain: import.meta.env.VITE_AUTH_DOMAIN,
@@ -14,38 +13,39 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_APP_ID
 };
 
-// 3. 初始化 Firebase
+// 2. 初始化
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// 4. 全域變數 (保留你的原始設定)
+// 3. 全域變數
 let currentUser = null;
 let csvData = { words: [], quotes: [] };
 let checkinHistory = [];
 let activityLog = [];
 
 // ==========================================
-// 以下是你原始代碼的邏輯 (完全保留)
+// 你的原始邏輯 (完全保留)
 // ==========================================
 
-// --- ENVELOPE LOGIC (信封) ---
+// --- ENVELOPE LOGIC ---
 window.openLetter = () => {
     const windchime = document.getElementById('windchime');
-    if (windchime) {
+    if(windchime) {
         windchime.volume = 0.5;
         windchime.play().catch(e => console.log("Audio play failed"));
     }
     const container = document.querySelector('.envelope-container');
-    if (container) container.classList.add('open');
+    if(container) container.classList.add('open');
     
     setTimeout(() => {
         const letterView = document.getElementById('letter-view');
-        if (letterView) letterView.classList.add('show');
+        if(letterView) letterView.classList.add('show');
         
         const paragraphs = document.querySelectorAll('.letter-p');
         paragraphs.forEach((p, index) => { setTimeout(() => { p.classList.add('visible'); }, index * 800); });
+        
         setTimeout(() => { 
             const btns = document.getElementById('choice-buttons');
             if(btns) btns.classList.add('visible'); 
@@ -53,12 +53,12 @@ window.openLetter = () => {
     }, 800);
 };
 
-// --- UI State (介面切換) ---
+// --- UI State ---
 window.enterVisitorMode = () => {
-    const overlay = document.getElementById('intro-overlay');
-    if (overlay) {
-        overlay.style.opacity = '0';
-        setTimeout(() => { overlay.style.display = 'none'; }, 1000);
+    const intro = document.getElementById('intro-overlay');
+    if(intro) {
+        intro.style.opacity = '0';
+        setTimeout(() => { intro.style.display = 'none'; }, 1000);
     }
     const visitorView = document.getElementById('visitor-view');
     if(visitorView) visitorView.classList.add('active');
@@ -82,8 +82,8 @@ window.closeMemberTerminal = () => {
     document.getElementById('member-terminal').classList.remove('show'); 
 };
 
-// --- Auth & Data (登入與資料) ---
-// 確保 DOM 載入後再綁定監聽器
+// --- Auth & Data ---
+// 等待 DOM 載入後綁定監聽器
 setTimeout(() => {
     const googleBtn = document.getElementById('google-login-btn');
     if(googleBtn) googleBtn.addEventListener('click', () => { signInWithPopup(auth, provider).catch(e => alert("Login Error: " + e.message)); });
@@ -99,18 +99,16 @@ setTimeout(() => {
             } else alert(error.message);
         });
     });
-
+    
     const logoutBtn = document.getElementById('logoutBtn');
     if(logoutBtn) logoutBtn.addEventListener('click', () => { signOut(auth).then(() => location.reload()); });
 }, 500);
 
-
-// --- Auth State Listener ---
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
-        const overlay = document.getElementById('intro-overlay');
-        if(overlay) overlay.style.display = 'none';
+        const intro = document.getElementById('intro-overlay');
+        if(intro) intro.style.display = 'none';
         
         const visitorView = document.getElementById('visitor-view');
         if(visitorView) visitorView.classList.remove('active');
@@ -131,29 +129,23 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// --- Planet Visit ---
 window.visitPlanet = (planetName, url) => {
     if (currentUser) trackActivity("Exploration", `Departed Moon for ${planetName}`);
     setTimeout(() => { window.location.href = url; }, 300);
 };
 
-// --- Activity Tracking ---
 async function trackActivity(type, detail) {
     if (!currentUser) return;
     const userRef = doc(db, "users", currentUser.uid);
     try { await updateDoc(userRef, { activityLogs: arrayUnion({ date: new Date().toISOString(), type, detail }) }); } catch (e) { console.log(e); }
 }
 
-// --- Load User Data ---
 async function loadUserData(uid) {
     const userRef = doc(db, "users", uid);
     let docSnap;
-    try {
-        docSnap = await getDoc(userRef);
-    } catch (e) { console.log("Error fetching doc:", e); return; }
-
-    const fullDate = new Date().toISOString().split('T')[0];
+    try { docSnap = await getDoc(userRef); } catch(e) { console.log(e); return; }
     
+    const fullDate = new Date().toISOString().split('T')[0];
     if (docSnap.exists()) {
         const data = docSnap.data();
         checkinHistory = data.history || [];
@@ -173,18 +165,16 @@ async function loadUserData(uid) {
     renderCalendar();
 }
 
-// --- Check In Logic ---
 window.handleCheckIn = async () => {
     if (!currentUser) return;
     const btn = document.getElementById('checkin-btn');
     btn.disabled = true; btn.innerText = "Signing in...";
-    
     const fullDate = new Date().toISOString().split('T')[0];
     const userRef = doc(db, "users", currentUser.uid);
     const docSnap = await getDoc(userRef);
-    
     let currentStreak = docSnap.data().streak || 0;
     const lastCheckIn = docSnap.data().history?.slice(-1)[0];
+    
     const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
     
@@ -194,15 +184,14 @@ window.handleCheckIn = async () => {
     const newHistory = checkinHistory.includes(fullDate) ? checkinHistory : [...checkinHistory, fullDate];
     await setDoc(userRef, { streak: currentStreak, history: newHistory }, { merge: true });
     await trackActivity("Check-in", "Daily Check-in");
-    
     checkinHistory = newHistory;
+    
     document.getElementById('streak-days').innerText = currentStreak;
     document.getElementById('total-days').innerText = checkinHistory.length;
     btn.innerText = "Moon Check-in Success! 🌕";
     renderCalendar();
 };
 
-// --- CSV Logic ---
 async function loadCSVData() {
     try {
         const [resWords, resQuotes] = await Promise.all([
@@ -211,7 +200,7 @@ async function loadCSVData() {
         ]);
         csvData.words = parseCSV(await resWords.text());
         csvData.quotes = parseCSV(await resQuotes.text());
-    } catch (e) { console.log("CSV Load Error", e); }
+    } catch (e) {}
 }
 
 function parseCSV(text) {
@@ -221,10 +210,7 @@ function parseCSV(text) {
         const row = {}; 
         const regex = /(?:,|\n|^)("(?:(?:"")*[^"]*)*"|[^",\n]*|(?:\n|$))/g;
         const matches = []; let match;
-        while ((match = regex.exec(line)) !== null) { 
-            if (match.index === regex.lastIndex) regex.lastIndex++; 
-            if (match[1] !== undefined) matches.push(match[1].replace(/^"|"$/g, '').replace(/""/g, '"')); 
-        }
+        while ((match = regex.exec(line)) !== null) { if (match.index === regex.lastIndex) regex.lastIndex++; if (match[1] !== undefined) matches.push(match[1].replace(/^"|"$/g, '').replace(/""/g, '"')); }
         headers.forEach((h, i) => row[h] = matches[i] ? matches[i].trim() : '');
         return row;
     });
@@ -281,9 +267,9 @@ window.printRecords = () => {
     window.print();
 };
 
-// --- Particle System (粒子特效) ---
+// --- Particle System ---
 const canvas = document.getElementById('particle-canvas');
-if (canvas) {
+if(canvas) {
     const ctx = canvas.getContext('2d');
     let particlesArray;
     function resizeCanvas(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
@@ -295,29 +281,17 @@ if (canvas) {
         draw(isDark) { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fillStyle = isDark ? `rgba(255, 255, 255, ${this.opacity})` : `rgba(44, 62, 80, ${this.opacity * 0.5})`; ctx.fill(); }
     }
     function initParticles() { particlesArray = []; for (let i = 0; i < 80; i++) particlesArray.push(new Particle()); }
-    function animateParticles() { 
-        requestAnimationFrame(animateParticles); 
-        ctx.clearRect(0, 0, canvas.width, canvas.height); 
-        const html = document.getElementById('htmlRoot');
-        const isDark = html ? html.classList.contains('dark') : false; 
-        particlesArray.forEach(p => { p.update(); p.draw(isDark); }); 
-    }
+    function animateParticles() { requestAnimationFrame(animateParticles); ctx.clearRect(0, 0, canvas.width, canvas.height); const isDark = document.getElementById('htmlRoot').classList.contains('dark'); particlesArray.forEach(p => { p.update(); p.draw(isDark); }); }
     initParticles(); animateParticles();
 }
 
-// --- Music & Theme (音樂與主題) ---
 const themeToggle = document.getElementById('themeToggle');
-if(themeToggle) {
-    themeToggle.addEventListener('click', () => document.getElementById('htmlRoot').classList.toggle('dark'));
-}
-
+if(themeToggle) themeToggle.addEventListener('click', () => document.getElementById('htmlRoot').classList.toggle('dark'));
 const musicToggle = document.getElementById('musicToggle');
 const themeSong = document.getElementById('themeSong');
 let isPlaying = false;
-if(musicToggle && themeSong) {
-    musicToggle.addEventListener('click', () => {
-        if(isPlaying) { themeSong.pause(); musicToggle.style.color="var(--text)"; }
-        else { themeSong.currentTime=0; themeSong.play().catch(e=>console.log(e)); musicToggle.style.color="var(--accent)"; }
-        isPlaying = !isPlaying;
-    });
-}
+if(musicToggle) musicToggle.addEventListener('click', () => {
+    if(isPlaying) { themeSong.pause(); musicToggle.style.color="var(--text)"; }
+    else { themeSong.currentTime=0; themeSong.play(); musicToggle.style.color="var(--accent)"; }
+    isPlaying = !isPlaying;
+});
