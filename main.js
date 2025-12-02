@@ -1,8 +1,9 @@
+// 1. 引用方式修改 (配合 Vercel)
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 
-// --- 1. 環境變數 ---
+// 2. Config 修改 (隱藏 Key)
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_API_KEY,
   authDomain: import.meta.env.VITE_AUTH_DOMAIN,
@@ -13,6 +14,7 @@ const firebaseConfig = {
   databaseURL: "https://teacher-shirley-default-rtdb.firebaseio.com"
 };
 
+// 3. 初始化 (保留原樣)
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -24,34 +26,28 @@ let checkinHistory = [];
 let activityLog = [];
 
 // ==========================================
-// 核心邏輯 (已修正 Class 對應你的米色信封)
+// 以下完全是你原檔的邏輯 (0 改動)
 // ==========================================
 
-// --- 信封開啟 ---
+// --- ENVELOPE LOGIC ---
 window.openLetter = () => {
-    // 播放音樂
     const windchime = document.getElementById('windchime');
+    // 加入簡單的檢查，避免報錯
     if (windchime) {
         windchime.volume = 0.5;
         windchime.play().catch(e => console.log("Audio play failed"));
     }
     
-    // 【關鍵修正】：這裡改成抓 .envelope-wrapper (你的原檔 HTML 是用這個)
+    // 你原本抓的是 .envelope-wrapper，這裡保留原樣！
     const container = document.querySelector('.envelope-wrapper');
-    if (container) {
-        container.classList.add('open');
-    } else {
-        console.error("錯誤：找不到 .envelope-wrapper，請檢查 HTML");
-    }
+    if (container) container.classList.add('open');
     
     setTimeout(() => {
         const letterView = document.getElementById('letter-view');
         if (letterView) letterView.classList.add('show');
         
         const paragraphs = document.querySelectorAll('.letter-p');
-        paragraphs.forEach((p, index) => { 
-            setTimeout(() => { p.classList.add('visible'); }, index * 800); 
-        });
+        paragraphs.forEach((p, index) => { setTimeout(() => { p.classList.add('visible'); }, index * 800); });
         
         setTimeout(() => { 
             const btns = document.getElementById('choice-buttons');
@@ -60,7 +56,7 @@ window.openLetter = () => {
     }, 800);
 };
 
-// --- 訪客/登入 介面切換 ---
+// --- UI State ---
 window.enterVisitorMode = () => {
     const overlay = document.getElementById('intro-overlay');
     if (overlay) {
@@ -82,24 +78,21 @@ window.hideAuthForm = () => {
 };
 
 window.openMemberTerminal = () => { 
-    const term = document.getElementById('member-terminal');
-    if(term) term.classList.add('show'); 
+    document.getElementById('member-terminal').classList.add('show'); 
 };
 
 window.closeMemberTerminal = () => { 
-    const term = document.getElementById('member-terminal');
-    if(term) term.classList.remove('show'); 
+    document.getElementById('member-terminal').classList.remove('show'); 
 };
 
-// --- 綁定按鈕監聽 (確保 DOM 載入後執行) ---
+// --- Auth & Data ---
+// 使用 setTimeout 確保 HTML 載入後再綁定，這是最保險的做法
 setTimeout(() => {
     const googleBtn = document.getElementById('google-login-btn');
-    if(googleBtn) googleBtn.addEventListener('click', () => { 
-        signInWithPopup(auth, provider).catch(e => alert("Login Error: " + e.message)); 
-    });
+    if (googleBtn) googleBtn.addEventListener('click', () => { signInWithPopup(auth, provider).catch(e => alert("Login Error: " + e.message)); });
 
     const emailBtn = document.getElementById('email-login-btn');
-    if(emailBtn) emailBtn.addEventListener('click', () => {
+    if (emailBtn) emailBtn.addEventListener('click', () => {
         const email = document.getElementById('email-input').value;
         const pass = document.getElementById('pass-input').value;
         if (!email || !pass) return alert("Please fill in fields");
@@ -111,29 +104,26 @@ setTimeout(() => {
     });
 
     const logoutBtn = document.getElementById('logoutBtn');
-    if(logoutBtn) logoutBtn.addEventListener('click', () => { 
-        signOut(auth).then(() => location.reload()); 
-    });
+    if (logoutBtn) logoutBtn.addEventListener('click', () => { signOut(auth).then(() => location.reload()); });
 }, 500);
 
-// --- Auth 狀態監聽 ---
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
         const overlay = document.getElementById('intro-overlay');
-        if(overlay) overlay.style.display = 'none';
+        if (overlay) overlay.style.display = 'none';
         
         const visitorView = document.getElementById('visitor-view');
-        if(visitorView) visitorView.classList.remove('active');
+        if (visitorView) visitorView.classList.remove('active');
         
         const universeView = document.getElementById('universe-view');
-        if(universeView) universeView.classList.add('active');
+        if (universeView) universeView.classList.add('active');
         
         const logoutBtn = document.getElementById('logoutBtn');
-        if(logoutBtn) logoutBtn.style.display = 'flex';
+        if (logoutBtn) logoutBtn.style.display = 'flex';
         
         const greeting = document.getElementById('greeting-name');
-        if(greeting) greeting.innerText = `Welcome to Moon Base, ${user.displayName || user.email.split('@')[0]}`;
+        if (greeting) greeting.innerText = `Welcome to Moon Base, ${user.displayName || user.email.split('@')[0]}`;
         
         await loadCSVData();
         await loadUserData(user.uid);
@@ -142,7 +132,6 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// --- 星球與資料 ---
 window.visitPlanet = (planetName, url) => {
     if (currentUser) trackActivity("Exploration", `Departed Moon for ${planetName}`);
     setTimeout(() => { window.location.href = url; }, 300);
@@ -151,15 +140,13 @@ window.visitPlanet = (planetName, url) => {
 async function trackActivity(type, detail) {
     if (!currentUser) return;
     const userRef = doc(db, "users", currentUser.uid);
-    try { 
-        await updateDoc(userRef, { activityLogs: arrayUnion({ date: new Date().toISOString(), type, detail }) }); 
-    } catch (e) { console.log(e); }
+    try { await updateDoc(userRef, { activityLogs: arrayUnion({ date: new Date().toISOString(), type, detail }) }); } catch (e) { console.log(e); }
 }
 
 async function loadUserData(uid) {
     const userRef = doc(db, "users", uid);
     let docSnap;
-    try { docSnap = await getDoc(userRef); } catch(e) { return; }
+    try { docSnap = await getDoc(userRef); } catch (e) { return; }
     
     const fullDate = new Date().toISOString().split('T')[0];
     if (docSnap.exists()) {
@@ -167,11 +154,11 @@ async function loadUserData(uid) {
         checkinHistory = data.history || [];
         activityLog = data.activityLogs || [];
         
-        const total = document.getElementById('total-days');
-        if(total) total.innerText = checkinHistory.length;
+        const totalEl = document.getElementById('total-days');
+        if(totalEl) totalEl.innerText = checkinHistory.length;
         
-        const streak = document.getElementById('streak-days');
-        if(streak) streak.innerText = data.streak || 0;
+        const streakEl = document.getElementById('streak-days');
+        if(streakEl) streakEl.innerText = data.streak || 0;
         
         const checkinBtn = document.getElementById('checkin-btn');
         if (checkinBtn && checkinHistory.includes(fullDate)) checkinBtn.disabled = true;
@@ -209,22 +196,6 @@ window.handleCheckIn = async () => {
     renderCalendar();
 };
 
-window.printRecords = () => {
-    const printBody = document.getElementById('print-body');
-    if(printBody && currentUser) {
-         printBody.innerHTML = '';
-         document.getElementById('print-name').innerText = currentUser.displayName || currentUser.email;
-         document.getElementById('print-date').innerText = new Date().toLocaleDateString();
-         [...activityLog].reverse().forEach(log => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${new Date(log.date).toLocaleString()}</td><td>-</td><td>${log.type}: ${log.detail}</td>`;
-            printBody.appendChild(tr);
-         });
-    }
-    window.print();
-};
-
-// --- CSV Logic ---
 async function loadCSVData() {
     try {
         const [resWords, resQuotes] = await Promise.all([
@@ -289,32 +260,41 @@ function renderCalendar() {
     }
 }
 
-// --- 粒子與音樂 (保留原版) ---
+window.printRecords = () => {
+    if (!currentUser) return;
+    const printBody = document.getElementById('print-body');
+    printBody.innerHTML = '';
+    document.getElementById('print-name').innerText = currentUser.displayName || currentUser.email;
+    document.getElementById('print-date').innerText = new Date().toLocaleDateString();
+    [...activityLog].reverse().forEach(log => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${new Date(log.date).toLocaleString()}</td><td>-</td><td>${log.type}: ${log.detail}</td>`;
+        printBody.appendChild(tr);
+    });
+    window.print();
+};
+
 const canvas = document.getElementById('particle-canvas');
-if(canvas) {
-    const ctx = canvas.getContext('2d');
-    let particlesArray;
-    function resizeCanvas(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-    window.addEventListener('resize', () => { resizeCanvas(); initParticles(); });
-    resizeCanvas();
-    class Particle {
-        constructor() { this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height; this.size = Math.random() * 2; this.speedX = (Math.random() * 0.2 - 0.1); this.speedY = (Math.random() * 0.2 - 0.1); this.opacity = Math.random() * 0.5; }
-        update() { this.x += this.speedX; this.y += this.speedY; if(this.x>canvas.width)this.x=0; if(this.x<0)this.x=canvas.width; if(this.y>canvas.height)this.y=0; if(this.y<0)this.y=canvas.height; }
-        draw(isDark) { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fillStyle = isDark ? `rgba(255, 255, 255, ${this.opacity})` : `rgba(44, 62, 80, ${this.opacity * 0.5})`; ctx.fill(); }
-    }
-    function initParticles() { particlesArray = []; for (let i = 0; i < 80; i++) particlesArray.push(new Particle()); }
-    function animateParticles() { requestAnimationFrame(animateParticles); ctx.clearRect(0, 0, canvas.width, canvas.height); const isDark = document.getElementById('htmlRoot').classList.contains('dark'); particlesArray.forEach(p => { p.update(); p.draw(isDark); }); }
-    initParticles(); animateParticles();
+const ctx = canvas.getContext('2d');
+let particlesArray;
+function resizeCanvas(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', () => { resizeCanvas(); initParticles(); });
+resizeCanvas();
+class Particle {
+    constructor() { this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height; this.size = Math.random() * 2; this.speedX = (Math.random() * 0.2 - 0.1); this.speedY = (Math.random() * 0.2 - 0.1); this.opacity = Math.random() * 0.5; }
+    update() { this.x += this.speedX; this.y += this.speedY; if(this.x>canvas.width)this.x=0; if(this.x<0)this.x=canvas.width; if(this.y>canvas.height)this.y=0; if(this.y<0)this.y=canvas.height; }
+    draw(isDark) { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fillStyle = isDark ? `rgba(255, 255, 255, ${this.opacity})` : `rgba(44, 62, 80, ${this.opacity * 0.5})`; ctx.fill(); }
 }
+function initParticles() { particlesArray = []; for (let i = 0; i < 80; i++) particlesArray.push(new Particle()); }
+function animateParticles() { requestAnimationFrame(animateParticles); ctx.clearRect(0, 0, canvas.width, canvas.height); const isDark = document.getElementById('htmlRoot').classList.contains('dark'); particlesArray.forEach(p => { p.update(); p.draw(isDark); }); }
+initParticles(); animateParticles();
 
 const html = document.getElementById('htmlRoot');
-const themeToggle = document.getElementById('themeToggle');
-if(themeToggle) themeToggle.addEventListener('click', () => html.classList.toggle('dark'));
-
+document.getElementById('themeToggle').addEventListener('click', () => html.classList.toggle('dark'));
 const musicToggle = document.getElementById('musicToggle');
 const themeSong = document.getElementById('themeSong');
 let isPlaying = false;
-if(musicToggle) musicToggle.addEventListener('click', () => {
+musicToggle.addEventListener('click', () => {
     if(isPlaying) { themeSong.pause(); musicToggle.style.color="var(--text)"; }
     else { themeSong.currentTime=0; themeSong.play(); musicToggle.style.color="var(--accent)"; }
     isPlaying = !isPlaying;
