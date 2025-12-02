@@ -1,9 +1,10 @@
-// main.js - 完整修復版
+// main.js - 100% 原始功能保留版
+// 1. 改用 npm 模組引入 (Vercel 需要這樣)
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "firebase/auth";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 
-// 1. 設定 Firebase (從 Vercel 環境變數讀取)
+// 2. 使用環境變數 (隱藏 Key)
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_API_KEY,
   authDomain: import.meta.env.VITE_AUTH_DOMAIN,
@@ -13,243 +14,310 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_APP_ID
 };
 
-console.log("正在初始化 Firebase..."); // Debug 訊息
-
-// 2. 初始化 App
+// 3. 初始化 Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// 3. 全域變數
+// 4. 全域變數 (保留你的原始設定)
 let currentUser = null;
+let csvData = { words: [], quotes: [] };
+let checkinHistory = [];
+let activityLog = [];
 
 // ==========================================
-// 核心功能函數 (Functions)
+// 以下是你原始代碼的邏輯 (完全保留)
 // ==========================================
 
-// --- 信封開啟 ---
-async function openLetter() {
-    console.log("信封被點擊了！"); // Debug 訊息
-    
-    // 播放風鈴聲
+// --- ENVELOPE LOGIC (信封) ---
+window.openLetter = () => {
     const windchime = document.getElementById('windchime');
-    if(windchime) {
+    if (windchime) {
         windchime.volume = 0.5;
-        windchime.play().catch(e => console.log("Audio play failed:", e));
+        windchime.play().catch(e => console.log("Audio play failed"));
     }
-
-    // 動畫邏輯
     const container = document.querySelector('.envelope-container');
-    if(container) container.classList.add('open');
+    if (container) container.classList.add('open');
     
     setTimeout(() => {
         const letterView = document.getElementById('letter-view');
-        if(letterView) letterView.classList.add('show');
+        if (letterView) letterView.classList.add('show');
         
         const paragraphs = document.querySelectorAll('.letter-p');
-        paragraphs.forEach((p, index) => { 
-            setTimeout(() => { p.classList.add('visible'); }, index * 800); 
-        });
-        
+        paragraphs.forEach((p, index) => { setTimeout(() => { p.classList.add('visible'); }, index * 800); });
         setTimeout(() => { 
             const btns = document.getElementById('choice-buttons');
             if(btns) btns.classList.add('visible'); 
         }, paragraphs.length * 800 + 400);
     }, 800);
-}
+};
 
-// --- 訪客模式 ---
-function enterVisitorMode() {
-    console.log("進入訪客模式");
-    document.getElementById('letter-view').style.display = 'none';
-    document.querySelector('.envelope-container').style.display = 'none';
-    document.getElementById('dashboard-view').style.display = 'block';
-    document.getElementById('welcome-msg').innerText = "Welcome, Traveler";
-    
-    // 訪客限制
-    document.getElementById('daily-planet').style.pointerEvents = 'none';
-    document.getElementById('daily-planet').style.opacity = '0.5';
-    loadWordOfTheDay(); // 載入單字
-    loadQuote(); // 載入名言
-}
-
-// --- 顯示登入視窗 (這裡直接呼叫 Firebase Login) ---
-function showAuthForm() {
-    console.log("準備登入...");
-    login();
-}
-
-// --- 登入邏輯 ---
-function login() {
-    signInWithPopup(auth, provider)
-    .then((result) => {
-        console.log("登入成功:", result.user.email);
-        // 登入成功後會自動觸發 onAuthStateChanged
-    }).catch((error) => {
-        console.error("登入失敗:", error);
-        alert("Login failed: " + error.message);
-    });
-}
-
-// --- 登出 ---
-function logout() {
-    signOut(auth).then(() => {
-        console.log("已登出");
-        window.location.reload();
-    });
-}
-
-// --- 簽到星球 ---
-async function visitPlanet() {
-    if (!currentUser) return alert("Please log in to check in!");
-    
-    const planet = document.getElementById('daily-planet');
-    planet.classList.add('checked-in');
-    
-    // 簡單的資料庫寫入範例
-    const today = new Date().toISOString().split('T')[0];
-    try {
-        const userRef = doc(db, "users", currentUser.uid);
-        await updateDoc(userRef, {
-            checkins: arrayUnion(today)
-        });
-        alert("Check-in successful! 🌟");
-    } catch (e) {
-        console.error("Check-in error:", e);
-        // 如果文檔不存在，則建立
-        try {
-            await setDoc(doc(db, "users", currentUser.uid), { checkins: [today] });
-            alert("First Check-in successful! 🌟");
-        } catch(e2) {
-            console.error("Create doc error:", e2);
-        }
+// --- UI State (介面切換) ---
+window.enterVisitorMode = () => {
+    const overlay = document.getElementById('intro-overlay');
+    if (overlay) {
+        overlay.style.opacity = '0';
+        setTimeout(() => { overlay.style.display = 'none'; }, 1000);
     }
-}
+    const visitorView = document.getElementById('visitor-view');
+    if(visitorView) visitorView.classList.add('active');
+};
 
-// --- 標記單字已學 ---
-function markWordLearned() {
-    if (!currentUser) return alert("Visitor mode: changes won't be saved.");
-    alert("Word marked as learned! (Saved to database)");
-}
+window.showAuthForm = () => { 
+    document.getElementById('choice-buttons').style.display = 'none'; 
+    document.getElementById('auth-form-container').style.display = 'block'; 
+};
 
-// --- 列印報表 ---
-function printReport() {
-    window.print();
-}
+window.hideAuthForm = () => { 
+    document.getElementById('choice-buttons').style.display = 'flex'; 
+    document.getElementById('auth-form-container').style.display = 'none'; 
+};
 
-// --- 輔助功能: 載入單字 (假資料) ---
-function loadWordOfTheDay() {
-    const wordEl = document.getElementById('wod-word');
-    if(wordEl) wordEl.innerText = "Serendipity";
-    
-    const partEl = document.getElementById('wod-part');
-    if(partEl) partEl.innerText = "noun";
-    
-    const meanEl = document.getElementById('wod-mean');
-    if(meanEl) meanEl.innerText = "意外發現美好事物的運氣";
-}
+window.openMemberTerminal = () => { 
+    document.getElementById('member-terminal').classList.add('show'); 
+};
 
-function loadQuote() {
-    const qText = document.getElementById('qotd-text');
-    if(qText) qText.innerText = "The only way to do great work is to love what you do.";
-    
-    const qAuth = document.getElementById('qotd-author');
-    if(qAuth) qAuth.innerText = "Steve Jobs";
-}
+window.closeMemberTerminal = () => { 
+    document.getElementById('member-terminal').classList.remove('show'); 
+};
 
-// ==========================================
-// 監聽登入狀態
-// ==========================================
-onAuthStateChanged(auth, (user) => {
+// --- Auth & Data (登入與資料) ---
+// 確保 DOM 載入後再綁定監聽器
+setTimeout(() => {
+    const googleBtn = document.getElementById('google-login-btn');
+    if(googleBtn) googleBtn.addEventListener('click', () => { signInWithPopup(auth, provider).catch(e => alert("Login Error: " + e.message)); });
+
+    const emailBtn = document.getElementById('email-login-btn');
+    if(emailBtn) emailBtn.addEventListener('click', () => {
+        const email = document.getElementById('email-input').value;
+        const pass = document.getElementById('pass-input').value;
+        if (!email || !pass) return alert("Please fill in fields");
+        signInWithEmailAndPassword(auth, email, pass).catch(error => {
+            if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+                if(confirm("Create account?")) createUserWithEmailAndPassword(auth, email, pass);
+            } else alert(error.message);
+        });
+    });
+
+    const logoutBtn = document.getElementById('logoutBtn');
+    if(logoutBtn) logoutBtn.addEventListener('click', () => { signOut(auth).then(() => location.reload()); });
+}, 500);
+
+
+// --- Auth State Listener ---
+onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
-        console.log("使用者已登入:", user.uid);
+        const overlay = document.getElementById('intro-overlay');
+        if(overlay) overlay.style.display = 'none';
         
-        // 如果還在信封畫面，直接進去
-        const letterView = document.getElementById('letter-view');
-        if (letterView && letterView.classList.contains('show')) {
-            enterVisitorMode(); // 這裡借用切換畫面的邏輯
-            const welcome = document.getElementById('welcome-msg');
-            if(welcome) welcome.innerText = "Welcome back, " + user.displayName;
-            
-            // 恢復星球點擊
-            const planet = document.getElementById('daily-planet');
-            if(planet) {
-                planet.style.pointerEvents = 'auto';
-                planet.style.opacity = '1';
-            }
-        }
-    } else {
-        currentUser = null;
+        const visitorView = document.getElementById('visitor-view');
+        if(visitorView) visitorView.classList.remove('active');
+        
+        const universeView = document.getElementById('universe-view');
+        if(universeView) universeView.classList.add('active');
+        
+        const logoutBtn = document.getElementById('logoutBtn');
+        if(logoutBtn) logoutBtn.style.display = 'flex';
+        
+        const greeting = document.getElementById('greeting-name');
+        if(greeting) greeting.innerText = `Welcome to Moon Base, ${user.displayName || user.email.split('@')[0]}`;
+        
+        await loadCSVData();
+        await loadUserData(user.uid);
+        renderDailyContent(getTodayMMDD());
+        trackActivity("Login", "Arrived at Moon Base");
     }
 });
 
+// --- Planet Visit ---
+window.visitPlanet = (planetName, url) => {
+    if (currentUser) trackActivity("Exploration", `Departed Moon for ${planetName}`);
+    setTimeout(() => { window.location.href = url; }, 300);
+};
 
-// ==========================================
-// 粒子特效 (原本的背景代碼)
-// ==========================================
+// --- Activity Tracking ---
+async function trackActivity(type, detail) {
+    if (!currentUser) return;
+    const userRef = doc(db, "users", currentUser.uid);
+    try { await updateDoc(userRef, { activityLogs: arrayUnion({ date: new Date().toISOString(), type, detail }) }); } catch (e) { console.log(e); }
+}
+
+// --- Load User Data ---
+async function loadUserData(uid) {
+    const userRef = doc(db, "users", uid);
+    let docSnap;
+    try {
+        docSnap = await getDoc(userRef);
+    } catch (e) { console.log("Error fetching doc:", e); return; }
+
+    const fullDate = new Date().toISOString().split('T')[0];
+    
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+        checkinHistory = data.history || [];
+        activityLog = data.activityLogs || [];
+        
+        const totalDays = document.getElementById('total-days');
+        if(totalDays) totalDays.innerText = checkinHistory.length;
+        
+        const streakDays = document.getElementById('streak-days');
+        if(streakDays) streakDays.innerText = data.streak || 0;
+        
+        const checkinBtn = document.getElementById('checkin-btn');
+        if (checkinBtn && checkinHistory.includes(fullDate)) checkinBtn.disabled = true;
+    } else {
+        await setDoc(userRef, { email: currentUser.email, history: [], streak: 0, activityLogs: [] }, { merge: true });
+    }
+    renderCalendar();
+}
+
+// --- Check In Logic ---
+window.handleCheckIn = async () => {
+    if (!currentUser) return;
+    const btn = document.getElementById('checkin-btn');
+    btn.disabled = true; btn.innerText = "Signing in...";
+    
+    const fullDate = new Date().toISOString().split('T')[0];
+    const userRef = doc(db, "users", currentUser.uid);
+    const docSnap = await getDoc(userRef);
+    
+    let currentStreak = docSnap.data().streak || 0;
+    const lastCheckIn = docSnap.data().history?.slice(-1)[0];
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    
+    if (lastCheckIn === yesterdayStr) currentStreak++;
+    else if (lastCheckIn !== fullDate) currentStreak = 1;
+    
+    const newHistory = checkinHistory.includes(fullDate) ? checkinHistory : [...checkinHistory, fullDate];
+    await setDoc(userRef, { streak: currentStreak, history: newHistory }, { merge: true });
+    await trackActivity("Check-in", "Daily Check-in");
+    
+    checkinHistory = newHistory;
+    document.getElementById('streak-days').innerText = currentStreak;
+    document.getElementById('total-days').innerText = checkinHistory.length;
+    btn.innerText = "Moon Check-in Success! 🌕";
+    renderCalendar();
+};
+
+// --- CSV Logic ---
+async function loadCSVData() {
+    try {
+        const [resWords, resQuotes] = await Promise.all([
+            fetch('https://ducj-creator.github.io/Teacher-Shirley/assets/word%20of%20the%20day.csv'),
+            fetch('https://ducj-creator.github.io/Teacher-Shirley/assets/quote%20of%20the%20day.csv')
+        ]);
+        csvData.words = parseCSV(await resWords.text());
+        csvData.quotes = parseCSV(await resQuotes.text());
+    } catch (e) { console.log("CSV Load Error", e); }
+}
+
+function parseCSV(text) {
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim());
+    return lines.slice(1).map(line => {
+        const row = {}; 
+        const regex = /(?:,|\n|^)("(?:(?:"")*[^"]*)*"|[^",\n]*|(?:\n|$))/g;
+        const matches = []; let match;
+        while ((match = regex.exec(line)) !== null) { 
+            if (match.index === regex.lastIndex) regex.lastIndex++; 
+            if (match[1] !== undefined) matches.push(match[1].replace(/^"|"$/g, '').replace(/""/g, '"')); 
+        }
+        headers.forEach((h, i) => row[h] = matches[i] ? matches[i].trim() : '');
+        return row;
+    });
+}
+
+function getTodayMMDD() { const now = new Date(); return String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0'); }
+
+function renderDailyContent(dateStr) {
+    const wordObj = csvData.words.find(r => r.date === dateStr);
+    if (wordObj) {
+        if(document.getElementById('wotd-word')) document.getElementById('wotd-word').innerText = wordObj.word;
+        if(document.getElementById('wotd-ipa')) document.getElementById('wotd-ipa').innerText = wordObj.ipa;
+        if(document.getElementById('wotd-pos')) document.getElementById('wotd-pos').innerText = wordObj.pos;
+        if(document.getElementById('wotd-meaning')) document.getElementById('wotd-meaning').innerText = wordObj.meaning;
+        if(document.getElementById('wotd-sentence-e')) document.getElementById('wotd-sentence-e').innerText = wordObj['sentence e'];
+        if(document.getElementById('wotd-sentence-c')) document.getElementById('wotd-sentence-c').innerText = wordObj['sentence c'];
+        if(document.getElementById('word-date')) document.getElementById('word-date').innerText = `(${dateStr})`;
+    }
+    const quoteObj = csvData.quotes.find(r => r.date === dateStr);
+    if (quoteObj) {
+        if(document.getElementById('qotd-text')) document.getElementById('qotd-text').innerText = quoteObj['quote e'];
+        if(document.getElementById('qotd-trans')) document.getElementById('qotd-trans').innerText = quoteObj['quote c'];
+        if(document.getElementById('qotd-author')) document.getElementById('qotd-author').innerText = "— " + quoteObj.author;
+    }
+}
+
+function renderCalendar() {
+    const grid = document.getElementById('calendar-grid');
+    if(!grid) return;
+    grid.innerHTML = '';
+    const now = new Date();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const currentYearMonth = now.toISOString().slice(0, 7); 
+    for (let i = 1; i <= daysInMonth; i++) {
+        const dayEl = document.createElement('div');
+        dayEl.innerText = i;
+        dayEl.style.cssText = "aspect-ratio:1; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.05); border-radius:4px;";
+        if (checkinHistory.includes(`${currentYearMonth}-${String(i).padStart(2, '0')}`)) { dayEl.style.background = "var(--accent)"; dayEl.style.color="white"; dayEl.style.borderRadius="50%"; }
+        grid.appendChild(dayEl);
+    }
+}
+
+window.printRecords = () => {
+    if (!currentUser) return;
+    const printBody = document.getElementById('print-body');
+    printBody.innerHTML = '';
+    document.getElementById('print-name').innerText = currentUser.displayName || currentUser.email;
+    document.getElementById('print-date').innerText = new Date().toLocaleDateString();
+    [...activityLog].reverse().forEach(log => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${new Date(log.date).toLocaleString()}</td><td>-</td><td>${log.type}: ${log.detail}</td>`;
+        printBody.appendChild(tr);
+    });
+    window.print();
+};
+
+// --- Particle System (粒子特效) ---
 const canvas = document.getElementById('particle-canvas');
 if (canvas) {
     const ctx = canvas.getContext('2d');
     let particlesArray;
-
     function resizeCanvas(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     window.addEventListener('resize', () => { resizeCanvas(); initParticles(); });
     resizeCanvas();
-
     class Particle {
         constructor() { this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height; this.size = Math.random() * 2; this.speedX = (Math.random() * 0.2 - 0.1); this.speedY = (Math.random() * 0.2 - 0.1); this.opacity = Math.random() * 0.5; }
         update() { this.x += this.speedX; this.y += this.speedY; if(this.x>canvas.width)this.x=0; if(this.x<0)this.x=canvas.width; if(this.y>canvas.height)this.y=0; if(this.y<0)this.y=canvas.height; }
         draw(isDark) { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fillStyle = isDark ? `rgba(255, 255, 255, ${this.opacity})` : `rgba(44, 62, 80, ${this.opacity * 0.5})`; ctx.fill(); }
     }
-
     function initParticles() { particlesArray = []; for (let i = 0; i < 80; i++) particlesArray.push(new Particle()); }
     function animateParticles() { 
         requestAnimationFrame(animateParticles); 
         ctx.clearRect(0, 0, canvas.width, canvas.height); 
-        const root = document.getElementById('htmlRoot');
-        const isDark = root ? root.classList.contains('dark') : false; 
+        const html = document.getElementById('htmlRoot');
+        const isDark = html ? html.classList.contains('dark') : false; 
         particlesArray.forEach(p => { p.update(); p.draw(isDark); }); 
     }
-
-    initParticles(); 
-    animateParticles();
+    initParticles(); animateParticles();
 }
 
-// ==========================================
-// 音樂與主題按鈕
-// ==========================================
+// --- Music & Theme (音樂與主題) ---
 const themeToggle = document.getElementById('themeToggle');
+if(themeToggle) {
+    themeToggle.addEventListener('click', () => document.getElementById('htmlRoot').classList.toggle('dark'));
+}
+
 const musicToggle = document.getElementById('musicToggle');
 const themeSong = document.getElementById('themeSong');
-
-if (themeToggle) {
-    themeToggle.addEventListener('click', () => {
-        const root = document.getElementById('htmlRoot');
-        if(root) root.classList.toggle('dark');
-    });
-}
-
-if (musicToggle && themeSong) {
-    let isPlaying = false;
+let isPlaying = false;
+if(musicToggle && themeSong) {
     musicToggle.addEventListener('click', () => {
         if(isPlaying) { themeSong.pause(); musicToggle.style.color="var(--text)"; }
         else { themeSong.currentTime=0; themeSong.play().catch(e=>console.log(e)); musicToggle.style.color="var(--accent)"; }
         isPlaying = !isPlaying;
     });
 }
-
-// ==========================================
-// 關鍵：將功能綁定到 window (讓 HTML 按鈕找得到)
-// ==========================================
-window.openLetter = openLetter;
-window.enterVisitorMode = enterVisitorMode;
-window.showAuthForm = showAuthForm;
-window.visitPlanet = visitPlanet;
-window.markWordLearned = markWordLearned;
-window.printReport = printReport;
-window.login = login;
-window.logout = logout;
-
-console.log("Main.js 載入完成，功能已公開！");
