@@ -140,14 +140,22 @@ function printReport() {
 
 // --- 輔助功能: 載入單字 (假資料) ---
 function loadWordOfTheDay() {
-    document.getElementById('wod-word').innerText = "Serendipity";
-    document.getElementById('wod-part').innerText = "noun";
-    document.getElementById('wod-mean').innerText = "意外發現美好事物的運氣";
+    const wordEl = document.getElementById('wod-word');
+    if(wordEl) wordEl.innerText = "Serendipity";
+    
+    const partEl = document.getElementById('wod-part');
+    if(partEl) partEl.innerText = "noun";
+    
+    const meanEl = document.getElementById('wod-mean');
+    if(meanEl) meanEl.innerText = "意外發現美好事物的運氣";
 }
 
 function loadQuote() {
-    document.getElementById('qotd-text').innerText = "The only way to do great work is to love what you do.";
-    document.getElementById('qotd-author').innerText = "Steve Jobs";
+    const qText = document.getElementById('qotd-text');
+    if(qText) qText.innerText = "The only way to do great work is to love what you do.";
+    
+    const qAuth = document.getElementById('qotd-author');
+    if(qAuth) qAuth.innerText = "Steve Jobs";
 }
 
 // ==========================================
@@ -162,10 +170,15 @@ onAuthStateChanged(auth, (user) => {
         const letterView = document.getElementById('letter-view');
         if (letterView && letterView.classList.contains('show')) {
             enterVisitorMode(); // 這裡借用切換畫面的邏輯
-            document.getElementById('welcome-msg').innerText = "Welcome back, " + user.displayName;
+            const welcome = document.getElementById('welcome-msg');
+            if(welcome) welcome.innerText = "Welcome back, " + user.displayName;
+            
             // 恢復星球點擊
-            document.getElementById('daily-planet').style.pointerEvents = 'auto';
-            document.getElementById('daily-planet').style.opacity = '1';
+            const planet = document.getElementById('daily-planet');
+            if(planet) {
+                planet.style.pointerEvents = 'auto';
+                planet.style.opacity = '1';
+            }
         }
     } else {
         currentUser = null;
@@ -195,7 +208,8 @@ if (canvas) {
     function animateParticles() { 
         requestAnimationFrame(animateParticles); 
         ctx.clearRect(0, 0, canvas.width, canvas.height); 
-        const isDark = document.getElementById('htmlRoot') ? document.getElementById('htmlRoot').classList.contains('dark') : false; 
+        const root = document.getElementById('htmlRoot');
+        const isDark = root ? root.classList.contains('dark') : false; 
         particlesArray.forEach(p => { p.update(); p.draw(isDark); }); 
     }
 
@@ -211,7 +225,10 @@ const musicToggle = document.getElementById('musicToggle');
 const themeSong = document.getElementById('themeSong');
 
 if (themeToggle) {
-    themeToggle.addEventListener('click', () => document.getElementById('htmlRoot').classList.toggle('dark'));
+    themeToggle.addEventListener('click', () => {
+        const root = document.getElementById('htmlRoot');
+        if(root) root.classList.toggle('dark');
+    });
 }
 
 if (musicToggle && themeSong) {
