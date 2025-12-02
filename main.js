@@ -1,9 +1,8 @@
-// main.js - 100% 原始代碼還原版
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 
-// 1. 環境變數設定
+// --- 1. 環境變數 (Vercel) ---
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_API_KEY,
   authDomain: import.meta.env.VITE_AUTH_DOMAIN,
@@ -14,37 +13,36 @@ const firebaseConfig = {
   databaseURL: "https://teacher-shirley-default-rtdb.firebaseio.com"
 };
 
-// 2. 初始化
+// --- 2. 初始化 ---
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// 3. 全域變數 (原樣保留)
 let currentUser = null;
 let csvData = { words: [], quotes: [] };
 let checkinHistory = [];
 let activityLog = [];
 
-// ======================================================
-// 以下邏輯完全複製自你的 index.html，確保功能一致
-// ======================================================
+// ==========================================
+// 你的原始邏輯 (完全保留)
+// ==========================================
 
-// --- 信封開啟 (對應你的 .envelope-wrapper) ---
+// --- 信封 (已確認你的原檔是用 .envelope-container) ---
 window.openLetter = () => {
     const windchime = document.getElementById('windchime');
-    if (windchime) {
+    if(windchime) {
         windchime.volume = 0.5;
         windchime.play().catch(e => console.log("Audio play failed"));
     }
     
-    // 【關鍵】：這裡抓的是你原檔的 envelope-wrapper
-    const container = document.querySelector('.envelope-wrapper'); 
-    if (container) container.classList.add('open');
+    // 這裡改回 container，對應你的 HTML
+    const container = document.querySelector('.envelope-container');
+    if(container) container.classList.add('open');
     
     setTimeout(() => {
         const letterView = document.getElementById('letter-view');
-        if (letterView) letterView.classList.add('show');
+        if(letterView) letterView.classList.add('show');
         
         const paragraphs = document.querySelectorAll('.letter-p');
         paragraphs.forEach((p, index) => { setTimeout(() => { p.classList.add('visible'); }, index * 800); });
@@ -56,15 +54,15 @@ window.openLetter = () => {
     }, 800);
 };
 
-// --- UI 狀態切換 ---
+// --- UI State ---
 window.enterVisitorMode = () => {
-    const overlay = document.getElementById('intro-overlay');
-    if (overlay) {
-        overlay.style.opacity = '0';
-        setTimeout(() => { overlay.style.display = 'none'; }, 1000);
+    const intro = document.getElementById('intro-overlay');
+    if(intro) {
+        intro.style.opacity = '0';
+        setTimeout(() => { intro.style.display = 'none'; }, 1000);
     }
     const visitorView = document.getElementById('visitor-view');
-    if (visitorView) visitorView.classList.add('active');
+    if(visitorView) visitorView.classList.add('active');
 };
 
 window.showAuthForm = () => { 
@@ -85,7 +83,7 @@ window.closeMemberTerminal = () => {
     document.getElementById('member-terminal').classList.remove('show'); 
 };
 
-// --- 綁定按鈕 (使用 setTimeout 確保 HTML 載入後執行) ---
+// --- Auth & Data (確保 DOM 載入後執行) ---
 setTimeout(() => {
     const googleBtn = document.getElementById('google-login-btn');
     if(googleBtn) googleBtn.addEventListener('click', () => { signInWithPopup(auth, provider).catch(e => alert("Login Error: " + e.message)); });
@@ -107,12 +105,11 @@ setTimeout(() => {
 }, 500);
 
 
-// --- 登入狀態監聽 ---
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
-        const overlay = document.getElementById('intro-overlay');
-        if(overlay) overlay.style.display = 'none';
+        const intro = document.getElementById('intro-overlay');
+        if(intro) intro.style.display = 'none';
         
         const visitorView = document.getElementById('visitor-view');
         if(visitorView) visitorView.classList.remove('active');
@@ -148,9 +145,8 @@ async function loadUserData(uid) {
     const userRef = doc(db, "users", uid);
     let docSnap;
     try { docSnap = await getDoc(userRef); } catch(e) { return; }
-
-    const fullDate = new Date().toISOString().split('T')[0];
     
+    const fullDate = new Date().toISOString().split('T')[0];
     if (docSnap.exists()) {
         const data = docSnap.data();
         checkinHistory = data.history || [];
@@ -263,10 +259,20 @@ function renderCalendar() {
 }
 
 window.printRecords = () => {
+    if (!currentUser) return;
+    const printBody = document.getElementById('print-body');
+    printBody.innerHTML = '';
+    document.getElementById('print-name').innerText = currentUser.displayName || currentUser.email;
+    document.getElementById('print-date').innerText = new Date().toLocaleDateString();
+    [...activityLog].reverse().forEach(log => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${new Date(log.date).toLocaleString()}</td><td>-</td><td>${log.type}: ${log.detail}</td>`;
+        printBody.appendChild(tr);
+    });
     window.print();
 };
 
-// --- 粒子特效 (你的原版) ---
+// --- Particle System (原版) ---
 const canvas = document.getElementById('particle-canvas');
 if(canvas) {
     const ctx = canvas.getContext('2d');
@@ -284,7 +290,7 @@ if(canvas) {
     initParticles(); animateParticles();
 }
 
-// --- 音樂與主題 (你的原版) ---
+// --- 音樂與主題 (原版) ---
 const html = document.getElementById('htmlRoot');
 const themeToggle = document.getElementById('themeToggle');
 if(themeToggle) themeToggle.addEventListener('click', () => html.classList.toggle('dark'));
