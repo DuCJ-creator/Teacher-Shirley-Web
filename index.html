@@ -12,371 +12,276 @@
   <style id="themeStyles">
     :root {
       /* --- Light Mode (Morning Mist) --- */
-      /* A soft blue-grey gradient, much better than pure white */
-      --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-      
-      --surface: rgba(255, 255, 255, 0.9);
-      /* Darker border for visibility */
-      --border: rgba(20, 30, 48, 0.15);
-      
-      --text: #1a2a3a; 
-      --text-light: #485563;
-      --accent: #b8860b; /* Darker Gold */
-      
-      /* Dark visible orbits */
-      --orbit-color: rgba(20, 30, 48, 0.2); 
-      --orbit-glow: none;
-      
-      --card-shadow: 0 10px 30px rgba(0,0,0,0.1);
-      --info-bg: rgba(255, 255, 255, 0.95);
+      --bg-light: linear-gradient(135deg, #eef2f3 0%, #d9e2ec 100%);
+      --text-light: #2c3e50;
+      --accent-light: #3498db; 
+      --card-bg-light: rgba(255, 255, 255, 0.85);
+      --card-border-light: rgba(255, 255, 255, 0.6);
+      --shadow-light: 0 8px 32px rgba(31, 38, 135, 0.1);
+
+      /* --- Dark Mode (Midnight Galaxy) --- */
+      --bg-dark: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+      --text-dark: #ecf0f1;
+      --accent-dark: #f1c40f; 
+      --card-bg-dark: rgba(16, 26, 46, 0.8);
+      --card-border-dark: rgba(255, 255, 255, 0.1);
+      --shadow-dark: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+      /* Default (Light) */
+      --bg: var(--bg-light);
+      --text: var(--text-light);
+      --accent: var(--accent-light);
+      --card-bg: var(--card-bg-light);
+      --card-border: var(--card-border-light);
+      --shadow: var(--shadow-light);
     }
 
+    /* Dark Mode Override */
     .dark {
-      /* --- Dark Mode (Deep Nebula) --- */
-      --bg-gradient: radial-gradient(circle at 50% 50%, #1b2735 0%, #090a0f 100%);
-      --surface: rgba(30, 40, 55, 0.85);
-      --border: rgba(255, 255, 255, 0.15);
-      --text: #ecf0f1;
-      --text-light: #bdc3c7;
-      --accent: #f1c40f; 
-      
-      --orbit-color: rgba(255, 255, 255, 0.2); 
-      --orbit-glow: 0 0 10px rgba(255, 255, 255, 0.05);
-      
-      --card-shadow: 0 15px 40px rgba(0,0,0,0.5);
-      --info-bg: rgba(25, 35, 50, 0.85);
+      --bg: var(--bg-dark);
+      --text: var(--text-dark);
+      --accent: var(--accent-dark);
+      --card-bg: var(--card-bg-dark);
+      --card-border: var(--card-border-dark);
+      --shadow: var(--shadow-dark);
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    
+    * { box-sizing: border-box; transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); }
     body {
-      background: var(--bg-gradient);
+      margin: 0; padding: 0;
+      font-family: 'Exo 2', 'Noto Serif TC', sans-serif;
+      background: var(--bg);
       background-attachment: fixed;
       color: var(--text);
-      font-family: 'Exo 2', 'Noto Serif TC', serif;
-      line-height: 1.6;
-      transition: color 0.5s, background 0.5s;
       min-height: 100vh;
+      display: flex; flex-direction: column;
       overflow-x: hidden;
     }
 
-    #particle-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
-    
-    /* --- Controls --- */
-    .top-bar { position: absolute; top: 1.5rem; right: 2rem; display: flex; gap: 1rem; z-index: 2000; }
-    .control-btn {
-      background: var(--surface); border: 1px solid var(--border);
-      width: 42px; height: 42px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; color: var(--text); font-size: 1.2rem;
-      transition: all 0.3s ease; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      backdrop-filter: blur(5px);
+    /* --- Particle Canvas --- */
+    #particle-canvas {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: -1; pointer-events: none;
     }
-    .control-btn:hover { transform: scale(1.1); color: var(--accent); border-color: var(--accent); }
+
+    /* --- Controls --- */
+    .controls { position: absolute; top: 20px; right: 20px; display: flex; gap: 15px; z-index: 100; }
+    .control-btn { 
+      background: var(--card-bg); border: 1px solid var(--card-border); 
+      color: var(--text); padding: 10px; border-radius: 50%; cursor: pointer; 
+      backdrop-filter: blur(4px); box-shadow: var(--shadow);
+    }
+    .control-btn:hover { transform: scale(1.1) rotate(10deg); color: var(--accent); }
 
     /* --- Header --- */
-    header { display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem 0; position: relative; z-index: 10; text-align: center; }
-    .main-title { font-family: 'Cinzel Decorative', cursive; font-size: clamp(1.8rem, 5vw, 3.5rem); font-weight: 700; color: var(--text); line-height: 1.1; text-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-    .dark .main-title { color: #ffffff; text-shadow: 0 0 25px rgba(241, 196, 15, 0.5); }
-    .title-underline { width: 80px; height: 3px; background: var(--accent); margin: 10px auto; border-radius: 2px; }
-
-    /* ==================== UNIVERSE VIEW (Fixed Layout V13) ==================== */
-    /* Ensure min-height so it doesn't collapse */
-    #universe-view { 
-        display: none; 
-        opacity: 0; 
-        transition: opacity 0.8s ease; 
-        min-height: 85vh; /* Fix for collapsed layout */
-        width: 100%; 
-        position: relative; 
-        overflow: hidden; 
+    header { 
+      text-align: center; padding: 6vh 20px 2vh; z-index: 10; 
+      animation: fadeInDown 1.5s ease-out;
     }
-    #universe-view.active { display: block; opacity: 1; }
+    h1 { 
+      font-family: 'Cinzel Decorative', cursive; 
+      font-size: 3.5rem; margin: 0; 
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+      background: linear-gradient(to right, var(--text), var(--accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .subtitle { font-size: 1.1rem; letter-spacing: 2px; opacity: 0.8; margin-top: 10px; font-weight: 300; }
 
-    .solar-system { 
-        position: relative; width: 100%; height: 85vh; /* Fill the view */
-        display: flex; justify-content: center; align-items: center; 
-        transform: scale(1);
+    /* --- Main Container --- */
+    .container {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 20px; z-index: 10; width: 100%; max-width: 1200px; margin: 0 auto;
     }
 
-    /* --- ORBITS --- */
-    .orbit { 
-        position: absolute; 
-        border: 1px dashed var(--orbit-color); 
-        box-shadow: var(--orbit-glow); 
-        border-radius: 50%; 
-        top: 50%; left: 50%; 
-        pointer-events: none; 
-        transition: border-color 0.5s;
+    /* --- Envelope --- */
+    .envelope-container {
+      position: relative; width: 320px; height: 220px; cursor: pointer;
+      perspective: 1000px; margin-bottom: 50px;
+      animation: float 6s ease-in-out infinite;
     }
+    .envelope {
+      width: 100%; height: 100%; background: #c0392b; border-radius: 5px;
+      position: absolute; top: 0; left: 0; transform-style: preserve-3d;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+      display: flex; justify-content: center; align-items: center;
+      transition: transform 1s;
+    }
+    .envelope::before { /* Flap */
+      content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 50%;
+      background: #e74c3c; clip-path: polygon(0 0, 100% 0, 50% 100%);
+      transform-origin: top; transition: transform 0.6s 0.2s; z-index: 5;
+    }
+    .envelope::after { /* Seal */
+      content: 'S'; font-family: 'Cinzel Decorative'; font-size: 40px; color: gold;
+      position: absolute; top: 30%; z-index: 6; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+    .envelope-container.open .envelope::before { transform: rotateX(180deg); }
+    .envelope-container.open .envelope { transform: translateY(150px) scale(0.8); opacity: 0; pointer-events: none; }
     
-    /* 1. Inner Orbit (Mars) */
-    .orbit-1 { width: 320px; height: 320px; margin-top: -160px; margin-left: -160px; animation: spinOrbit 50s linear infinite; }
-    /* 2. Middle Orbit (Mercury) */
-    .orbit-2 { width: 520px; height: 520px; margin-top: -260px; margin-left: -260px; animation: spinOrbit 90s linear infinite reverse; border-style: dotted; }
-    /* 3. Outer Orbit (Jupiter & Saturn) */
-    .orbit-3 { width: 780px; height: 780px; margin-top: -390px; margin-left: -390px; animation: spinOrbit 140s linear infinite; }
-
-    /* --- PLANETS --- */
-    /* Dynamic Mars */
-    .mars-container { position: absolute; width: 320px; height: 320px; top: 50%; left: 50%; margin-top: -160px; margin-left: -160px; animation: spinOrbit 50s linear infinite; pointer-events: none; z-index: 5; }
-    .mars-wrapper { position: absolute; width: 60px; height: 60px; top: -30px; left: 50%; margin-left: -30px; animation: spinCounter 50s linear infinite; pointer-events: auto; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
-
-    /* Static Planets */
-    .static-planet-wrapper { position: absolute; z-index: 6; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform 0.3s; }
-    .static-planet-wrapper:hover { transform: scale(1.15); z-index: 50; }
-
-    .pos-mercury { top: 50%; left: 50%; transform: translate(-50%, 260px) translate(-50%, -50%); margin-top: 30px; }
-    .pos-saturn { top: 50%; left: 50%; transform: translate(-390px, 0) translate(-50%, -50%); margin-left: 20px; }
-    .pos-jupiter { top: 50%; left: 50%; transform: translate(390px, 0) translate(-50%, -50%); margin-left: -20px; }
-
-    /* Moon Base */
-    .moon-wrapper { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
-    .planet-moon { width: 100px; height: 100px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #f5f6fa, #bdc3c7); box-shadow: 0 0 50px rgba(255,255,255,0.6), inset -10px -10px 30px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.4); animation: bounce 2s ease-in-out infinite; }
-
-    /* Visuals */
-    .planet-visual { width: 100%; height: 100%; border-radius: 50%; position: relative; }
-    .p-mars { background: radial-gradient(#e74c3c, #c0392b); box-shadow: 0 0 25px rgba(231, 76, 60, 0.6); }
-    .p-jupiter { width: 85px; height: 85px; background: radial-gradient(#f1c40f, #d35400); box-shadow: 0 0 35px rgba(241, 196, 15, 0.6); }
-    .p-saturn { width: 75px; height: 75px; background: radial-gradient(#f39c12, #e67e22); border: 4px double rgba(255,255,255,0.3); box-shadow: 0 0 25px rgba(243, 156, 18, 0.4); }
-    .p-mercury { width: 55px; height: 55px; background: radial-gradient(#dfe6e9, #95a5a6, #2c3e50); box-shadow: 0 0 25px rgba(189, 195, 199, 0.7); }
-
-    /* Info Cards (Improved Visibility) */
-    .planet-info {
-        position: absolute; width: 220px; 
-        background: var(--info-bg);
-        backdrop-filter: blur(15px);
-        padding: 12px 15px; border-radius: 12px;
-        border: 1px solid var(--border);
-        text-align: center; pointer-events: none;
-        box-shadow: var(--card-shadow);
-        bottom: 120%; left: 50%; transform: translateX(-50%);
+    .letter-content {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.5);
+      width: 90%; max-width: 600px; background: var(--card-bg);
+      padding: 40px; border-radius: 10px; border: 1px solid var(--card-border);
+      box-shadow: var(--shadow); backdrop-filter: blur(10px);
+      opacity: 0; pointer-events: none; transition: all 0.8s ease;
+      text-align: center;
     }
-    .moon-info { width: 240px; bottom: 130%; }
-    
-    .p-name { font-family: 'Cinzel Decorative'; font-weight: 700; font-size: 1.1rem; color: var(--text); margin-bottom: 4px; display:block; }
-    .p-poem-cn { font-family: 'Noto Serif TC', serif; font-size: 0.85rem; color: var(--text); line-height: 1.4; margin-bottom: 3px; font-weight: 600; }
-    .p-poem-en { font-family: 'Playfair Display', serif; font-size: 0.75rem; color: var(--text-light); font-style: italic; line-height: 1.2; }
-    
-    .checkin-tag { display: block; margin-top: 8px; background: linear-gradient(90deg, var(--accent), #f39c12); color: white; font-size: 0.75rem; padding: 4px 10px; border-radius: 15px; font-weight: bold; box-shadow: 0 3px 8px rgba(0,0,0,0.2); }
+    .letter-content.show { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); top: 50%; }
 
-    @keyframes spinOrbit { 100% { transform: rotate(360deg); } }
-    @keyframes spinCounter { 100% { transform: rotate(-360deg); } }
-    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
-
-    /* Responsive */
-    @media (max-width: 1024px) { .solar-system { transform: scale(0.75); } }
-    @media (max-width: 768px) { 
-        .solar-system { transform: scale(0.55); height: 70vh; } 
-        .planet-info { width: 190px; padding: 8px; font-size: 0.9em; }
-        .pos-saturn { transform: translate(-340px, 0) translate(-50%, -50%); }
-        .pos-jupiter { transform: translate(340px, 0) translate(-50%, -50%); }
-        .orbit-3 { width: 680px; height: 680px; margin-top: -340px; margin-left: -340px; }
+    .letter-p { 
+      font-size: 1.2rem; line-height: 1.8; margin-bottom: 20px; 
+      opacity: 0; transform: translateY(20px); transition: all 0.8s ease; 
     }
-    @media (max-width: 420px) { .solar-system { transform: scale(0.42); } .pos-mercury { margin-top: 60px; } }
-
-    /* ==================== REST OF THE SITE ==================== */
-    /* Envelope */
-    #intro-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); z-index: 5000; display: flex; align-items: center; justify-content: center; transition: opacity 1s ease; }
-    .envelope-container { position: relative; cursor: pointer; width: 320px; height: 210px; transition: transform 0.5s ease; animation: floatEnv 4s ease-in-out infinite; }
-    .envelope-container:hover { transform: scale(1.05); }
-    .envelope-body { position: absolute; bottom: 0; width: 100%; height: 100%; background: #e6dac8; box-shadow: 0 20px 40px rgba(0,0,0,0.3); border-radius: 5px; overflow: hidden; z-index: 2; }
-    .envelope-txt { position: absolute; z-index: 10; text-align: center; width: 100%; top: 55%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; padding: 0 10px; }
-    .env-title { font-family: 'Cinzel Decorative'; font-size: 1.1rem; color: #5d4037; margin-bottom: 5px; }
-    .env-subtitle { font-family: 'Dancing Script', font-size: 1.2rem; color: #8d6e63; margin-bottom: 15px; }
-    .env-highlight { font-family: 'Exo 2'; font-weight: 700; color: #c0392b; font-size: 0.85rem; margin-bottom: 2px; }
-    .env-cn { font-family: 'Noto Sans TC'; font-size: 0.75rem; color: #6d4c41; font-weight: 500; }
-    .envelope-flap { position: absolute; top: 0; left: 0; width: 0; height: 0; border-left: 160px solid transparent; border-right: 160px solid transparent; border-top: 130px solid #dccbb1; transform-origin: top; transition: transform 0.8s ease 0.2s, z-index 0.2s; z-index: 3; }
-    .envelope-pocket { position: absolute; bottom: 0; left: 0; width: 0; height: 0; border-left: 160px solid #f0e6d6; border-right: 160px solid #ece0cd; border-bottom: 110px solid #f8f1e5; border-top: 110px solid transparent; z-index: 4; }
-    .heart-seal { position: absolute; top: -55px; left: -15px; font-size: 2rem; color: #c0392b; animation: heartBeat 1.5s infinite; }
-    .envelope-container.open .envelope-flap { transform: rotateX(180deg); z-index: 1; }
-    .envelope-container.open { animation: none; transform: scale(1.5); opacity: 0; pointer-events: none; transition: opacity 0.5s 1s, transform 1s; }
-    @keyframes floatEnv { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-    @keyframes heartBeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
-
-    /* Letter */
-    .letter-paper { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); width: 95%; max-width: 750px; height: auto; max-height: 95vh; background: radial-gradient(circle at 50% 0%, #ffffff 10%, #f7f4e9 80%); box-shadow: 0 0 60px rgba(0,0,0,0.6), inset 0 0 40px rgba(255,255,255,0.8), inset 0 0 10px rgba(212, 175, 55, 0.1); padding: 2.5rem 3rem; opacity: 0; pointer-events: none; transition: all 0.8s ease 0.8s; overflow-y: auto; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.8); display: flex; flex-direction: column; }
-    .letter-paper::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url('https://ducj-creator.github.io/Teacher-Shirley/assets/Shirley.png'); background-size: cover; background-position: center; filter: blur(6px) grayscale(20%); opacity: 0.1; z-index: 0; pointer-events: none; }
-    .sparkle-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; overflow: hidden; }
-    .sparkle { position: absolute; width: 4px; height: 4px; background: rgba(212, 175, 55, 0.6); border-radius: 50%; box-shadow: 0 0 4px rgba(255, 255, 255, 0.8); animation: floatSparkle 4s infinite linear; }
-    .sparkle:nth-child(1) { top: 10%; left: 20%; animation-duration: 3s; } .sparkle:nth-child(2) { top: 30%; left: 80%; animation-duration: 5s; } .sparkle:nth-child(3) { top: 60%; left: 10%; animation-duration: 4s; }
-    @keyframes floatSparkle { 0% { opacity: 0; } 50% { opacity: 1; transform: translateY(-20px) scale(1.2); } 100% { transform: translateY(-40px) scale(0); opacity: 0; } }
-    .letter-paper.show { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
-    .letter-content { position: relative; z-index: 2; color: #2c3e50; font-family: 'Playfair Display', serif; }
-    .letter-p { margin-bottom: 0.8rem; font-size: 1.05rem; line-height: 1.5; opacity: 0; transform: translateY(10px); transition: all 0.6s ease; text-align: justify; }
     .letter-p.visible { opacity: 1; transform: translateY(0); }
-    .cn-text { display: block; font-family: 'Noto Sans TC'; font-size: 0.95rem; color: #7f8c8d; margin-top: 2px; line-height: 1.4; }
-    .moon-base-txt { color: var(--accent); font-weight: bold; }
-    .signature { text-align: right; font-family: 'Dancing Script', cursive; font-size: 1.5rem; margin: 1rem 0; color: var(--accent); }
 
-    .choice-area { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(0,0,0,0.1); display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; opacity: 0; transition: opacity 1s ease 0.5s; }
-    .choice-area.visible { opacity: 1; }
-    .btn-letter { padding: 8px 20px; border-radius: 25px; border: none; font-family: 'Exo 2'; font-weight: 600; cursor: pointer; transition: 0.3s; display: flex; flex-direction: column; align-items: center; min-width: 140px; }
-    .btn-visitor { background: transparent; border: 1px solid #8d6e63; color: #5d4037; }
-    .btn-visitor:hover { background: rgba(141, 110, 99, 0.1); }
-    .btn-login { background: var(--accent); color: white; border: 1px solid var(--accent); box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
-    .btn-login:hover { background: var(--accent-hover); transform: translateY(-2px); }
+    .choice-buttons { 
+      display: flex; justify-content: center; gap: 20px; margin-top: 30px; 
+      opacity: 0; transition: opacity 1s; 
+    }
+    .choice-buttons.visible { opacity: 1; }
 
-    #auth-form-container { display: none; margin-top: 10px; background: rgba(255,255,255,0.95); padding: 15px; border-radius: 8px; border: 1px solid #ddd; }
-    .google-btn { width: 100%; padding: 10px; background: white; color: #555; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 10px; }
-    .input-group input { width: 100%; padding: 8px; margin-bottom: 8px; border-radius: 4px; border: 1px solid #ccc; font-family: 'Exo 2'; }
-    .email-btn { width: 100%; padding: 8px; background: #2c3e50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    .btn {
+      padding: 12px 30px; border: none; border-radius: 50px; cursor: pointer;
+      font-size: 1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+      transition: all 0.3s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3); }
+    .btn-secondary { background: transparent; border: 2px solid var(--text); color: var(--text); }
+    .btn:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
 
-    /* Views */
-    #visitor-view { display: none; opacity: 0; transition: opacity 0.5s ease; padding-bottom: 5rem; }
-    #visitor-view.active { display: block; opacity: 1; }
-    .categories { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; padding: 0 2rem; max-width: 1000px; margin: 0 auto; position: relative; z-index: 5; }
-    .category-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2.5rem 1.5rem; text-align: center; text-decoration: none; color: var(--text); transition: all 0.4s; box-shadow: var(--card-shadow); display: flex; flex-direction: column; align-items: center; }
-    .category-card:hover { transform: translateY(-8px); border-color: var(--accent); }
-    .icon { font-size: 3rem; margin-bottom: 1rem; }
+    /* --- Dashboard (Hidden initially) --- */
+    #dashboard-view { display: none; width: 100%; max-width: 1000px; animation: fadeIn 1s; }
+    .dashboard-grid { 
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; 
+      margin-top: 30px; 
+    }
+    .card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: 15px; padding: 25px; backdrop-filter: blur(5px);
+      box-shadow: var(--shadow); position: relative; overflow: hidden;
+      transition: transform 0.3s;
+    }
+    .card:hover { transform: translateY(-5px); }
+    .card-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; margin-bottom: 15px; color: var(--accent); }
+    
+    /* Planet (Check-in) */
+    .planet-container { height: 150px; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+    .planet {
+      width: 100px; height: 100px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #4facfe, #00f2fe);
+      box-shadow: 0 0 30px #4facfe, inset -10px -10px 20px rgba(0,0,0,0.2);
+      position: relative; transition: all 0.5s;
+    }
+    .planet::after {
+      content: ''; position: absolute; top: 50%; left: -20%; width: 140%; height: 20px;
+      border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); border-top: none;
+      transform: rotate(-10deg);
+    }
+    .planet:hover { transform: scale(1.1) rotate(20deg); box-shadow: 0 0 50px #00f2fe; }
+    .planet.checked-in { background: radial-gradient(circle at 30% 30%, #ff9a9e, #fecfef); box-shadow: 0 0 30px #ff9a9e; }
+    
+    /* Word of the Day */
+    .word-card { text-align: center; }
+    .word-en { font-size: 2.5rem; font-weight: 700; margin-bottom: 5px; color: var(--text); }
+    .word-part { font-style: italic; opacity: 0.7; font-size: 0.9rem; margin-bottom: 15px; }
+    .word-zh { font-size: 1.2rem; color: var(--accent); }
 
-    #member-terminal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95); width: 90%; max-width: 900px; max-height: 85vh; overflow-y: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2.5rem; z-index: 200; box-shadow: 0 25px 80px rgba(0,0,0,0.4); display: none; opacity: 0; transition: all 0.3s; backdrop-filter: blur(10px); }
-    #member-terminal.show { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    .close-terminal { position: absolute; top: 20px; right: 25px; font-size: 1.5rem; cursor: pointer; }
-    .member-dashboard { display: grid; grid-template-columns: 280px 1fr; gap: 2rem; margin-top: 1rem; }
-    @media (max-width: 800px) { .member-dashboard { grid-template-columns: 1fr; } }
-    .profile-panel { background: rgba(0,0,0,0.02); border-radius: 16px; padding: 2rem; text-align: center; border: 1px solid var(--border); }
-    .streak-ring { width: 110px; height: 110px; border: 5px solid var(--accent); border-radius: 50%; margin: 0 auto 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .streak-num { font-size: 2.5rem; font-weight: 800; color: var(--accent); }
-    .data-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; }
-    .word-card { border-left: 5px solid #3498db; }
-    .quote-card { border-left: 5px solid #f1c40f; margin-top: 1rem; }
-    .checkin-btn { width: 100%; padding: 14px; background: var(--accent); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 15px; }
-    .checkin-btn:disabled { background: #bdc3c7; cursor: not-allowed; }
-
+    /* History Table */
+    .history-list { list-style: none; padding: 0; margin-top: 10px; font-size: 0.9rem; max-height: 150px; overflow-y: auto; }
+    .history-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.1); }
+    
+    /* Print Styles */
+    @media print {
+      body * { visibility: hidden; }
+      #print-area, #print-area * { visibility: visible; }
+      #print-area { position: absolute; left: 0; top: 0; width: 100%; color: black; background: white; padding: 20px; }
+      .print-only { display: block !important; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid black; padding: 10px; text-align: left; }
+    }
     .print-only { display: none; }
-    @media print { body * { visibility: hidden; } #print-area, #print-area * { visibility: visible; } #print-area { position: absolute; left: 0; top: 0; width: 100%; } .print-only { display: block; } table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #333; padding: 8px; } }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+
+    /* Utility */
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
 
+  <audio id="themeSong" loop>
+    <source src="https://assets.mixkit.co/music/preview/mixkit-stars-in-space-854.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="windchime">
+      <source src="https://assets.mixkit.co/sfx/preview/mixkit-magic-wind-chime-alerts-2578.mp3" type="audio/mpeg">
+  </audio>
+
   <canvas id="particle-canvas"></canvas>
 
-  <audio id="themeSong" src="https://ducj-creator.github.io/Teacher-Shirley/assets/theme%20song.mp3" preload="auto"></audio>
-  <audio id="windchime" src="https://ducj-creator.github.io/Teacher-Shirley/assets/windchime.mp3" preload="auto"></audio>
-
-  <div class="top-bar">
-      <div id="themeToggle" class="control-btn" title="Toggle Theme">🌓</div>
-      <div id="musicToggle" class="control-btn" title="Music">🎵</div>
-      <div id="logoutBtn" class="control-btn" title="Logout" style="display:none;">🚪</div>
+  <div class="controls">
+    <button class="control-btn" id="themeToggle" title="Toggle Theme">🌓</button>
+    <button class="control-btn" id="musicToggle" title="Toggle Music">🎵</button>
   </div>
 
   <header>
-    <div class="title-container">
-        <h1 class="main-title">Teacher Shirley’s<br>ET Platform</h1>
-        <div class="title-underline"></div>
-    </div>
+    <h1>Teacher Shirley's Platform</h1>
+    <div class="subtitle">English Teaching & Learning Space</div>
   </header>
 
-  <div id="intro-overlay">
+  <div class="container">
+      
       <div class="envelope-container" onclick="openLetter()">
-          <div class="envelope-body"></div>
-          <div class="envelope-txt">
-              <div class="env-title">Welcome Message</div>
-              <div class="env-subtitle">from Teacher Shirley</div>
-              <div class="env-highlight">Welcome to my ET Platform<br>Ready for launch! 🚀</div>
-              <div class="env-cn">歡迎來到我的 ET 月台，準備出發囉！</div>
-          </div>
-          <div class="envelope-pocket"></div>
-          <div class="envelope-flap"><div class="heart-seal">💗</div></div>
+          <div class="envelope"></div>
       </div>
 
-      <div class="letter-paper" id="letter-view">
-          <div class="sparkle-overlay">
-              <div class="sparkle"></div><div class="sparkle"></div><div class="sparkle"></div><div class="sparkle"></div><div class="sparkle"></div>
-          </div>
-          <div class="letter-content">
-              <div class="letter-p"><strong>Hi there! 👋</strong> I’m Shirley—an English teacher who believes learning should be joyful, interactive, and full of “aha!” moments. <span class="cn-text">我是 Shirley——一位相信學習應該充滿樂趣、互動，並時常迸發「啊哈！」靈感的英文老師。</span></div>
-              <div class="letter-p">This teaching-and-learning platform is your free, ad-free toolkit—carefully crafted from years of real classroom experience and student feedback. <span class="cn-text">這個教與學平台是您免費、無廣告的學習工具箱——源自多年真實課堂經驗與學生回饋。</span></div>
-              <div class="letter-p">Whether you’re a teacher looking for ready-to-use activities or an English learner eager to practice anytime, anywhere, you’re welcome to explore all tools and content freely as a visitor. <span class="cn-text">不論您是尋找現成教學活動的老師，還是想隨時隨地練習英文的學習者，都歡迎以訪客身份自由使用所有資源。</span></div>
-              <div class="letter-p" style="background:rgba(212, 175, 55, 0.1); padding:8px; border-radius:6px;">If you log in, each day you’ll receive: ✨“Word of the Day”, “Bilingual Quote”, and unlock your <span class="moon-base-txt">Moon Base Card</span> to track daily check-ins, build streaks, and map your journey. <span class="cn-text" style="color:#5d4037;">若您選擇登入，每天能獲得✨「每日單字」與「每日佳句」，更可啟用專屬<span class="moon-base-txt">「月球基地卡」</span>——記錄打卡、累積天數與探索軌跡。</span></div>
-              <div class="letter-p">I highly encourage you to check in every day—consistency turns small efforts into big results, and learning is a journey of steady persistence and joyful discovery. <span class="cn-text">我誠摯鼓勵您每日打卡——持之以恆，微小的努力終將開花結果；學習是一場需要堅持，也充滿樂趣與驚喜的旅程。</span></div>
-              <div class="signature">— Teacher Shirley</div>
-              <div class="choice-area" id="choice-buttons">
-                  <button class="btn-letter btn-visitor" onclick="enterVisitorMode()"><span>🛸 Visitor Mode</span><span style="font-size:0.7rem; font-weight:normal;">訪客參觀 (無紀錄)</span></button>
-                  <button class="btn-letter btn-login" onclick="showAuthForm()"><span>🚀 Log In</span><span style="font-size:0.7rem; font-weight:normal;">登入 / 註冊</span></button>
-              </div>
-              <div id="auth-form-container">
-                  <h4 style="margin-bottom:10px; text-align:center; color:var(--text);">Log In / 登入</h4>
-                  <button id="google-login-btn" class="google-btn"><svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.715H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.159 6.656 3.58 9 3.58z"/></svg> Google Login</button>
-                  <div style="text-align:center; font-size:0.8rem; margin:5px 0;">— OR —</div>
-                  <div class="input-group"><input type="email" id="email-input" placeholder="Email"><input type="password" id="pass-input" placeholder="Password"></div>
-                  <button class="email-btn" id="email-login-btn">Log In</button>
-                  <div style="margin-top:8px; text-align:center; font-size:0.8rem; cursor:pointer; text-decoration:underline;" onclick="hideAuthForm()">Cancel</div>
-              </div>
-          </div>
-      </div>
-  </div>
-
-  <div id="visitor-view">
-      <div style="text-align:center; margin-bottom:2rem; color:var(--text-light);">
-          Currently in <strong>Visitor Mode</strong>. <span style="cursor:pointer; color:var(--accent); text-decoration:underline;" onclick="location.reload()">Return to Welcome Letter</span>
-      </div>
-      <div class="categories">
-        <a href="/Teacher-Shirley/teaching-tools/" class="category-card">
-          <span class="icon">🍎</span>
-          <h2>Teaching Tools</h2>
-          <div class="subtitle">師師百寶箱</div>
-        </a>
-        <a href="https://ducj-creator.github.io/Teacher-Shirley/study-tools/index.html" class="category-card">
-          <span class="icon">🪐</span>
-          <h2>Study Tools</h2>
-          <div class="subtitle">學學智趣閣</div>
-        </a>
-        <a href="/Teacher-Shirley/amusement-park/" class="category-card">
-          <span class="icon">🎪</span>
-          <h2>Amusement Park</h2>
-          <div class="subtitle">樂樂嬉遊谷</div>
-        </a>
-        <a href="/Teacher-Shirley/external-resources/" class="category-card">
-          <span class="icon">🔗</span>
-          <h2>External Resources</h2>
-          <div class="subtitle">源源連結庫</div>
-        </a>
-      </div>
-  </div>
-
-  <div id="universe-view">
-      <div class="solar-system">
+      <div id="letter-view" class="letter-content">
+          <h2 style="font-family:'Cinzel Decorative'; margin-bottom:20px; color:var(--accent);">Welcome, Traveler</h2>
+          <p class="letter-p">Welcome to my digital space. Here, we explore the universe of English together.</p>
+          <p class="letter-p">Are you a curious Visitor just passing by, or a Student ready to continue your journey?</p>
+          <p class="letter-p">Make your choice to proceed.</p>
           
-          <div class="orbit orbit-1"></div>
-          <div class="orbit orbit-2"></div>
-          <div class="orbit orbit-3"></div>
-
-          <div class="mars-container"><div class="mars-wrapper" onclick="visitPlanet('Mars', '/Teacher-Shirley/teaching-tools/')"><div class="planet-visual p-mars"></div><div class="planet-info"><span class="p-name">Mars 🔴</span><div class="p-poem-cn">在火星燃起星火<br>於講台化作晨光</div><div class="p-poem-en">Upon Mars, kindle starlight; on the lectern, dawnlight blooms.</div></div></div></div>
-
-          <div class="static-planet-wrapper pos-mercury" onclick="visitPlanet('Mercury', '/Teacher-Shirley/external-resources/')"><div class="planet-visual p-mercury"></div><div class="planet-info"><span class="p-name">Mercury ⚪</span><div class="p-poem-cn">在水星攬盡星語<br>於微光結成橋樑</div><div class="p-poem-en">Upon Mercury, catch star-words; in glimmers, weave a bridge.</div></div></div>
-
-          <div class="static-planet-wrapper pos-jupiter" onclick="visitPlanet('Jupiter', 'https://ducj-creator.github.io/Teacher-Shirley/study-tools/index.html')"><div class="planet-visual p-jupiter"></div><div class="planet-info"><span class="p-name">Jupiter 🟡</span><div class="p-poem-cn">在木星涵納星河<br>於書頁長出新芽</div><div class="p-poem-en">Upon Jupiter, gather star-rivers; in pages, sprouts unfold.</div></div></div>
-
-          <div class="static-planet-wrapper pos-saturn" onclick="visitPlanet('Saturn', '/Teacher-Shirley/amusement-park/')"><div class="planet-visual p-saturn"></div><div class="planet-info"><span class="p-name">Saturn 🟠</span><div class="p-poem-cn">在土星旋舞光環<br>於笑語拾得珠璣</div><div class="p-poem-en">Upon Saturn, spin the rings; in laughter, catch bright pearls.</div></div></div>
-
-          <div class="moon-wrapper" onclick="openMemberTerminal()"><div class="planet-moon"></div><div class="planet-info moon-info"><span class="p-name">Moon 🌕</span><div class="p-poem-cn">在月之暗面沉思<br>於月之明面成長</div><div class="p-poem-en">In the moon’s shadow, ponder. In its light, grow.</div><span class="checkin-tag">Tap to Check-in: 🌕基地打卡</span></div></div>
-
-      </div>
-      <div style="position:absolute; bottom:20px; width:100%; text-align:center; color:var(--text-light); font-size:0.75rem; font-style:italic;">Explore the galaxy to find your learning path.</div>
-  </div>
-
-  <div id="member-terminal">
-      <div class="close-terminal" onclick="closeMemberTerminal()">✕</div>
-      <h3 id="greeting-name" style="font-family:'Cinzel Decorative'; color:var(--accent); text-align:center; margin-bottom:1rem;">Welcome to Moon Base</h3>
-      <div class="member-dashboard">
-          <div class="profile-panel">
-              <div class="streak-ring"><div class="streak-num" id="streak-days">0</div><div style="font-size:0.7rem;">Days Streak</div></div>
-              <div style="margin-bottom:1rem; font-size:0.9rem;">Total Check-ins: <strong id="total-days">0</strong></div>
-              <div id="calendar-grid" style="display:grid; grid-template-columns:repeat(7,1fr); gap:3px; font-size:0.7rem; margin-bottom:10px;"></div>
-              <button id="checkin-btn" class="checkin-btn" onclick="handleCheckIn()">Daily Check-in</button>
-              <div style="margin-top:1rem; cursor:pointer; text-decoration:underline; font-size:0.8rem; color:var(--text-light);" onclick="printRecords()">🖨️ Print Learning Log</div>
+          <div class="choice-buttons" id="choice-buttons">
+              <button class="btn btn-secondary" onclick="enterVisitorMode()">👀 Just Visiting</button>
+              <button class="btn btn-primary" onclick="showAuthForm()">🚀 Log In / Sign Up</button>
           </div>
-          <div class="content-panel">
-              <div class="data-card word-card">
-                  <span style="font-size:0.7rem; text-transform:uppercase; color:var(--text-light); letter-spacing:1px;">Word of the Day <span id="word-date"></span></span>
-                  <div style="display:flex; gap:10px; align-items:baseline; margin-top:5px;"><span class="the-word" id="wotd-word">Wait...</span><span style="background:var(--accent); color:white; padding:1px 6px; border-radius:4px; font-size:0.75rem;" id="wotd-pos"></span></div>
-                  <div style="font-family:'Noto Sans TC'; font-weight:bold; color:var(--accent); margin:5px 0; font-size:1.1rem;" id="wotd-meaning"></div>
-                  <div style="font-style:italic; color:var(--text-light); font-size:0.9rem; margin-bottom:10px;" id="wotd-ipa"></div>
-                  <div style="background:rgba(0,0,0,0.03); padding:10px; border-radius:8px;"><div id="wotd-sentence-e" style="font-style:italic; margin-bottom:4px;"></div><div id="wotd-sentence-c" style="font-size:0.9rem; color:var(--text-light);"></div></div>
+      </div>
+
+      <div id="dashboard-view">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+              <h2 id="welcome-msg">Welcome to Moon Base</h2>
+              <div>
+                  <button class="btn btn-secondary" style="font-size:0.8rem; padding:5px 15px;" onclick="printReport()">🖨️ Print Report</button>
+                  <button class="btn btn-secondary" style="font-size:0.8rem; padding:5px 15px;" onclick="logout()">Logout</button>
               </div>
-              <div class="data-card quote-card">
+          </div>
+
+          <div class="dashboard-grid">
+              <div class="card">
+                  <div class="card-title">Daily Check-in</div>
+                  <div class="planet-container" onclick="visitPlanet()">
+                      <div class="planet" id="daily-planet"></div>
+                  </div>
+                  <p style="text-align:center; font-size:0.9rem; margin-top:10px; opacity:0.8;">Click the planet to check in!</p>
+              </div>
+
+              <div class="card">
+                  <div class="card-title">My Journey Log</div>
+                  <ul class="history-list" id="activity-log">
+                      <li style="text-align:center; opacity:0.5;">No recent activity</li>
+                  </ul>
+              </div>
+
+              <div class="card word-card">
+                  <div class="card-title">Word of the Day</div>
+                  <div class="word-en" id="wod-word">Loading...</div>
+                  <div class="word-part" id="wod-part">...</div>
+                  <div class="word-zh" id="wod-mean">...</div>
+                  <button class="btn btn-primary" style="margin-top:15px; transform:scale(0.8);" onclick="markWordLearned()">Mark as Learned</button>
+              </div>
+
+              <div class="card">
                   <span style="font-size:0.7rem; text-transform:uppercase; color:var(--text-light); letter-spacing:1px;">Daily Quote</span>
                   <div style="font-family:'Playfair Display'; font-size:1.3rem; margin:15px 0; line-height:1.4;" id="qotd-text"></div>
                   <div style="font-size:0.95rem; color:var(--text-light);" id="qotd-trans"></div>
@@ -398,9 +303,8 @@
     <div>©️ Teacher Shirley‘s ET Platform 2025</div>
     <span id="busuanzi_container_site_pv">Total Visits: <span id="busuanzi_value_site_pv"></span></span>
   </footer>
-
   <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
 
-<script type="module" src="/main.js"></script>
+  <script type="module" src="/main.js"></script>
 </body>
 </html>
