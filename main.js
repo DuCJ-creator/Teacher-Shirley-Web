@@ -38,7 +38,7 @@ window.openLetter = () => {
     
     // 這裡改回 container，對應你的 HTML
     const container = document.querySelector('.envelope-container');
-    if(container) container.classList.add('open');
+
     
     setTimeout(() => {
         const letterView = document.getElementById('letter-view');
