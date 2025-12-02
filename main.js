@@ -1,10 +1,9 @@
-// main.js - 100% 針對 Teacher Shirley 原檔適配
-// 1. 引入 Firebase 模組
+// main.js - 修正版：完美對應你的 index.html
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 
-// 2. 設定環境變數 (隱藏 Key)
+// 1. 環境變數
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_API_KEY,
   authDomain: import.meta.env.VITE_AUTH_DOMAIN,
@@ -12,42 +11,46 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_APP_ID,
-  databaseURL: "https://teacher-shirley-default-rtdb.firebaseio.com" // 保留你原本的設定
+  databaseURL: "https://teacher-shirley-default-rtdb.firebaseio.com"
 };
 
-// 3. 初始化 Firebase
+// 2. 初始化
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// 4. 全域變數 (保留原檔設定)
+// 3. 變數準備
 let currentUser = null;
 let csvData = { words: [], quotes: [] };
 let checkinHistory = [];
 let activityLog = [];
 
 // ==========================================
-// 以下完全是你原檔的邏輯
+// 你的原始邏輯 (已修正 Class 對應)
 // ==========================================
 
-// --- ENVELOPE LOGIC (信封) ---
+// --- 信封邏輯 ---
 window.openLetter = () => {
+    // 播放音效
     const windchime = document.getElementById('windchime');
     if (windchime) {
         windchime.volume = 0.5;
         windchime.play().catch(e => console.log("Audio play failed"));
     }
-    // 修正：使用你原檔的 class 名稱 '.envelope-wrapper'
-    const container = document.querySelector('.envelope-wrapper'); 
+    
+    // 關鍵修正：這裡改回抓取 'envelope-container'
+    const container = document.querySelector('.envelope-container'); 
     if (container) container.classList.add('open');
     
+    // 動畫與切換
     setTimeout(() => {
         const letterView = document.getElementById('letter-view');
         if (letterView) letterView.classList.add('show');
         
         const paragraphs = document.querySelectorAll('.letter-p');
         paragraphs.forEach((p, index) => { setTimeout(() => { p.classList.add('visible'); }, index * 800); });
+        
         setTimeout(() => { 
             const btns = document.getElementById('choice-buttons');
             if(btns) btns.classList.add('visible'); 
@@ -55,7 +58,7 @@ window.openLetter = () => {
     }, 800);
 };
 
-// --- UI State (介面切換) ---
+// --- 訪客模式 ---
 window.enterVisitorMode = () => {
     const overlay = document.getElementById('intro-overlay');
     if (overlay) {
@@ -66,6 +69,7 @@ window.enterVisitorMode = () => {
     if (visitorView) visitorView.classList.add('active');
 };
 
+// --- Auth UI ---
 window.showAuthForm = () => { 
     document.getElementById('choice-buttons').style.display = 'none'; 
     document.getElementById('auth-form-container').style.display = 'block'; 
@@ -84,8 +88,7 @@ window.closeMemberTerminal = () => {
     document.getElementById('member-terminal').classList.remove('show'); 
 };
 
-// --- Auth & Data (登入與資料) ---
-// 確保 DOM 載入後再綁定監聽器
+// --- 登入與資料監聽 ---
 setTimeout(() => {
     const googleBtn = document.getElementById('google-login-btn');
     if(googleBtn) googleBtn.addEventListener('click', () => { signInWithPopup(auth, provider).catch(e => alert("Login Error: " + e.message)); });
@@ -107,23 +110,22 @@ setTimeout(() => {
 }, 500);
 
 
-// --- Auth State Listener ---
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
-        // 隱藏 intro-overlay
+        // 隱藏歡迎頁
         const overlay = document.getElementById('intro-overlay');
         if(overlay) overlay.style.display = 'none';
-        
         const visitorView = document.getElementById('visitor-view');
         if(visitorView) visitorView.classList.remove('active');
         
+        // 顯示宇宙
         const universeView = document.getElementById('universe-view');
         if(universeView) universeView.classList.add('active');
-        
         const logoutBtn = document.getElementById('logoutBtn');
         if(logoutBtn) logoutBtn.style.display = 'flex';
         
+        // 歡迎詞
         const greeting = document.getElementById('greeting-name');
         if(greeting) greeting.innerText = `Welcome to Moon Base, ${user.displayName || user.email.split('@')[0]}`;
         
@@ -134,37 +136,31 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// --- Planet Visit ---
+// --- 星球與資料邏輯 ---
 window.visitPlanet = (planetName, url) => {
     if (currentUser) trackActivity("Exploration", `Departed Moon for ${planetName}`);
     setTimeout(() => { window.location.href = url; }, 300);
 };
 
-// --- Activity Tracking ---
 async function trackActivity(type, detail) {
     if (!currentUser) return;
     const userRef = doc(db, "users", currentUser.uid);
     try { await updateDoc(userRef, { activityLogs: arrayUnion({ date: new Date().toISOString(), type, detail }) }); } catch (e) { console.log(e); }
 }
 
-// --- Load User Data ---
 async function loadUserData(uid) {
     const userRef = doc(db, "users", uid);
     let docSnap;
     try { docSnap = await getDoc(userRef); } catch(e) { console.log(e); return; }
 
     const fullDate = new Date().toISOString().split('T')[0];
-    
     if (docSnap.exists()) {
         const data = docSnap.data();
         checkinHistory = data.history || [];
         activityLog = data.activityLogs || [];
         
-        const totalDays = document.getElementById('total-days');
-        if(totalDays) totalDays.innerText = checkinHistory.length;
-        
-        const streakDays = document.getElementById('streak-days');
-        if(streakDays) streakDays.innerText = data.streak || 0;
+        if(document.getElementById('total-days')) document.getElementById('total-days').innerText = checkinHistory.length;
+        if(document.getElementById('streak-days')) document.getElementById('streak-days').innerText = data.streak || 0;
         
         const checkinBtn = document.getElementById('checkin-btn');
         if (checkinBtn && checkinHistory.includes(fullDate)) checkinBtn.disabled = true;
@@ -174,7 +170,6 @@ async function loadUserData(uid) {
     renderCalendar();
 }
 
-// --- Check In Logic ---
 window.handleCheckIn = async () => {
     if (!currentUser) return;
     const btn = document.getElementById('checkin-btn');
@@ -203,7 +198,7 @@ window.handleCheckIn = async () => {
     renderCalendar();
 };
 
-// --- CSV Logic ---
+// --- CSV 與渲染 ---
 async function loadCSVData() {
     try {
         const [resWords, resQuotes] = await Promise.all([
@@ -282,7 +277,7 @@ window.printRecords = () => {
     window.print();
 };
 
-// --- Particle System (你的原始粒子特效) ---
+// --- 粒子特效 ---
 const canvas = document.getElementById('particle-canvas');
 if (canvas) {
     const ctx = canvas.getContext('2d');
@@ -296,28 +291,21 @@ if (canvas) {
         draw(isDark) { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fillStyle = isDark ? `rgba(255, 255, 255, ${this.opacity})` : `rgba(44, 62, 80, ${this.opacity * 0.5})`; ctx.fill(); }
     }
     function initParticles() { particlesArray = []; for (let i = 0; i < 80; i++) particlesArray.push(new Particle()); }
-    function animateParticles() { 
-        requestAnimationFrame(animateParticles); 
-        ctx.clearRect(0, 0, canvas.width, canvas.height); 
-        const html = document.getElementById('htmlRoot');
-        const isDark = html ? html.classList.contains('dark') : false; 
-        particlesArray.forEach(p => { p.update(); p.draw(isDark); }); 
-    }
+    function animateParticles() { requestAnimationFrame(animateParticles); ctx.clearRect(0, 0, canvas.width, canvas.height); const isDark = document.body.classList.contains('dark'); particlesArray.forEach(p => { p.update(); p.draw(isDark); }); }
     initParticles(); animateParticles();
 }
 
-// --- Music & Theme ---
-const html = document.getElementById('htmlRoot');
+// --- 音樂與主題按鈕 ---
 const themeToggle = document.getElementById('themeToggle');
-if(themeToggle) themeToggle.addEventListener('click', () => html.classList.toggle('dark'));
+if(themeToggle) themeToggle.addEventListener('click', () => document.body.classList.toggle('dark'));
 
 const musicToggle = document.getElementById('musicToggle');
 const themeSong = document.getElementById('themeSong');
 let isPlaying = false;
 if(musicToggle) {
     musicToggle.addEventListener('click', () => {
-        if(isPlaying) { themeSong.pause(); musicToggle.style.color="var(--text)"; }
-        else { themeSong.currentTime=0; themeSong.play(); musicToggle.style.color="var(--accent)"; }
+        if(isPlaying) { themeSong.pause(); musicToggle.style.filter="none"; }
+        else { themeSong.currentTime=0; themeSong.play(); musicToggle.style.filter="drop-shadow(0 0 5px gold)"; }
         isPlaying = !isPlaying;
     });
 }
