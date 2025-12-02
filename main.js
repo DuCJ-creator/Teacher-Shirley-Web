@@ -1,9 +1,14 @@
 import { initializeApp } from "firebase/app";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 import {
-  getAuth, signInWithPopup, GoogleAuthProvider, signOut,
-  onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword
-} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword
+} from "firebase/auth";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 // --- 1. 環境變數 (Vercel) ---
