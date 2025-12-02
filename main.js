@@ -1,9 +1,9 @@
-// main.js - 修正版：完美對應你的 index.html
+// 1. 改成 npm 模組引入 (Vercel 需要)
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 
-// 1. 環境變數
+// 2. 使用 Vercel 環境變數 (這裡就是安全的地方)
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_API_KEY,
   authDomain: import.meta.env.VITE_AUTH_DOMAIN,
@@ -11,42 +11,39 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_APP_ID,
-  databaseURL: "https://teacher-shirley-default-rtdb.firebaseio.com"
+  databaseURL: "https://teacher-shirley-default-rtdb.firebaseio.com" // 保留你的 RTDB 設定
 };
 
-// 2. 初始化
+// 3. 初始化 Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// 3. 變數準備
+// 4. 全域變數 (保留原檔)
 let currentUser = null;
 let csvData = { words: [], quotes: [] };
 let checkinHistory = [];
 let activityLog = [];
 
 // ==========================================
-// 你的原始邏輯 (已修正 Class 對應)
+// 以下完全是你原檔的邏輯
 // ==========================================
 
-// --- 信封邏輯 ---
+// --- ENVELOPE LOGIC ---
 window.openLetter = () => {
-    // 播放音效
     const windchime = document.getElementById('windchime');
-    if (windchime) {
+    if(windchime) {
         windchime.volume = 0.5;
         windchime.play().catch(e => console.log("Audio play failed"));
     }
+    // 這裡是你原本的 class: envelope-wrapper
+    const container = document.querySelector('.envelope-wrapper'); 
+    if(container) container.classList.add('open');
     
-    // 關鍵修正：這裡改回抓取 'envelope-container'
-    const container = document.querySelector('.envelope-container'); 
-    if (container) container.classList.add('open');
-    
-    // 動畫與切換
     setTimeout(() => {
         const letterView = document.getElementById('letter-view');
-        if (letterView) letterView.classList.add('show');
+        if(letterView) letterView.classList.add('show');
         
         const paragraphs = document.querySelectorAll('.letter-p');
         paragraphs.forEach((p, index) => { setTimeout(() => { p.classList.add('visible'); }, index * 800); });
@@ -58,18 +55,18 @@ window.openLetter = () => {
     }, 800);
 };
 
-// --- 訪客模式 ---
+// --- UI State ---
 window.enterVisitorMode = () => {
+    // 這裡是你原本的 ID: intro-overlay
     const overlay = document.getElementById('intro-overlay');
-    if (overlay) {
+    if(overlay) {
         overlay.style.opacity = '0';
         setTimeout(() => { overlay.style.display = 'none'; }, 1000);
     }
     const visitorView = document.getElementById('visitor-view');
-    if (visitorView) visitorView.classList.add('active');
+    if(visitorView) visitorView.classList.add('active');
 };
 
-// --- Auth UI ---
 window.showAuthForm = () => { 
     document.getElementById('choice-buttons').style.display = 'none'; 
     document.getElementById('auth-form-container').style.display = 'block'; 
@@ -88,7 +85,8 @@ window.closeMemberTerminal = () => {
     document.getElementById('member-terminal').classList.remove('show'); 
 };
 
-// --- 登入與資料監聽 ---
+// --- Auth & Data ---
+// 確保 DOM 載入後再綁定監聽器
 setTimeout(() => {
     const googleBtn = document.getElementById('google-login-btn');
     if(googleBtn) googleBtn.addEventListener('click', () => { signInWithPopup(auth, provider).catch(e => alert("Login Error: " + e.message)); });
@@ -113,19 +111,19 @@ setTimeout(() => {
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
-        // 隱藏歡迎頁
+        // 隱藏 intro-overlay (你原檔的 ID)
         const overlay = document.getElementById('intro-overlay');
         if(overlay) overlay.style.display = 'none';
+        
         const visitorView = document.getElementById('visitor-view');
         if(visitorView) visitorView.classList.remove('active');
         
-        // 顯示宇宙
         const universeView = document.getElementById('universe-view');
         if(universeView) universeView.classList.add('active');
+        
         const logoutBtn = document.getElementById('logoutBtn');
         if(logoutBtn) logoutBtn.style.display = 'flex';
         
-        // 歡迎詞
         const greeting = document.getElementById('greeting-name');
         if(greeting) greeting.innerText = `Welcome to Moon Base, ${user.displayName || user.email.split('@')[0]}`;
         
@@ -136,31 +134,37 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// --- 星球與資料邏輯 ---
+// --- Planet Visit ---
 window.visitPlanet = (planetName, url) => {
     if (currentUser) trackActivity("Exploration", `Departed Moon for ${planetName}`);
     setTimeout(() => { window.location.href = url; }, 300);
 };
 
+// --- Activity Tracking ---
 async function trackActivity(type, detail) {
     if (!currentUser) return;
     const userRef = doc(db, "users", currentUser.uid);
     try { await updateDoc(userRef, { activityLogs: arrayUnion({ date: new Date().toISOString(), type, detail }) }); } catch (e) { console.log(e); }
 }
 
+// --- Load User Data ---
 async function loadUserData(uid) {
     const userRef = doc(db, "users", uid);
     let docSnap;
     try { docSnap = await getDoc(userRef); } catch(e) { console.log(e); return; }
 
     const fullDate = new Date().toISOString().split('T')[0];
+    
     if (docSnap.exists()) {
         const data = docSnap.data();
         checkinHistory = data.history || [];
         activityLog = data.activityLogs || [];
         
-        if(document.getElementById('total-days')) document.getElementById('total-days').innerText = checkinHistory.length;
-        if(document.getElementById('streak-days')) document.getElementById('streak-days').innerText = data.streak || 0;
+        const totalDays = document.getElementById('total-days');
+        if(totalDays) totalDays.innerText = checkinHistory.length;
+        
+        const streakDays = document.getElementById('streak-days');
+        if(streakDays) streakDays.innerText = data.streak || 0;
         
         const checkinBtn = document.getElementById('checkin-btn');
         if (checkinBtn && checkinHistory.includes(fullDate)) checkinBtn.disabled = true;
@@ -170,6 +174,7 @@ async function loadUserData(uid) {
     renderCalendar();
 }
 
+// --- Check In Logic ---
 window.handleCheckIn = async () => {
     if (!currentUser) return;
     const btn = document.getElementById('checkin-btn');
@@ -198,7 +203,7 @@ window.handleCheckIn = async () => {
     renderCalendar();
 };
 
-// --- CSV 與渲染 ---
+// --- CSV Logic ---
 async function loadCSVData() {
     try {
         const [resWords, resQuotes] = await Promise.all([
@@ -277,7 +282,7 @@ window.printRecords = () => {
     window.print();
 };
 
-// --- 粒子特效 ---
+// --- Particle System ---
 const canvas = document.getElementById('particle-canvas');
 if (canvas) {
     const ctx = canvas.getContext('2d');
@@ -291,21 +296,28 @@ if (canvas) {
         draw(isDark) { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fillStyle = isDark ? `rgba(255, 255, 255, ${this.opacity})` : `rgba(44, 62, 80, ${this.opacity * 0.5})`; ctx.fill(); }
     }
     function initParticles() { particlesArray = []; for (let i = 0; i < 80; i++) particlesArray.push(new Particle()); }
-    function animateParticles() { requestAnimationFrame(animateParticles); ctx.clearRect(0, 0, canvas.width, canvas.height); const isDark = document.body.classList.contains('dark'); particlesArray.forEach(p => { p.update(); p.draw(isDark); }); }
+    function animateParticles() { 
+        requestAnimationFrame(animateParticles); 
+        ctx.clearRect(0, 0, canvas.width, canvas.height); 
+        const html = document.getElementById('htmlRoot');
+        const isDark = html ? html.classList.contains('dark') : false; 
+        particlesArray.forEach(p => { p.update(); p.draw(isDark); }); 
+    }
     initParticles(); animateParticles();
 }
 
-// --- 音樂與主題按鈕 ---
+// --- Music & Theme ---
+const html = document.getElementById('htmlRoot');
 const themeToggle = document.getElementById('themeToggle');
-if(themeToggle) themeToggle.addEventListener('click', () => document.body.classList.toggle('dark'));
+if(themeToggle) themeToggle.addEventListener('click', () => html.classList.toggle('dark'));
 
 const musicToggle = document.getElementById('musicToggle');
 const themeSong = document.getElementById('themeSong');
 let isPlaying = false;
 if(musicToggle) {
     musicToggle.addEventListener('click', () => {
-        if(isPlaying) { themeSong.pause(); musicToggle.style.filter="none"; }
-        else { themeSong.currentTime=0; themeSong.play(); musicToggle.style.filter="drop-shadow(0 0 5px gold)"; }
+        if(isPlaying) { themeSong.pause(); musicToggle.style.color="var(--text)"; }
+        else { themeSong.currentTime=0; themeSong.play(); musicToggle.style.color="var(--accent)"; }
         isPlaying = !isPlaying;
     });
 }
